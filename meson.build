@@ -82,7 +82,9 @@ epoxy_dep = dependency('epoxy', version: '>= 1.5.4')
 m_dep = cc.find_library('m')
 
 conf_data = configuration_data()
-conf_data.set('VERSION', '0.9.1')
+conf_data.set('_GNU_SOURCE', 1)
+conf_data.set('VIRGL_RENDERER_UNSTABLE_APIS', 1)
+conf_data.set('ENABLE_DRM', libdrm_dep.found())
 
 with_tracing = get_option('tracing')
 

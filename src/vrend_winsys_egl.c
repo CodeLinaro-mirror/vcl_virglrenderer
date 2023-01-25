@@ -34,7 +34,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <unistd.h>
+
+#ifdef ENABLE_DRM
 #include <xf86drm.h>
+#endif
 
 #include "util/u_memory.h"
 
@@ -330,9 +334,12 @@ struct virgl_egl *virgl_egl_init(EGLNativeDisplayType display_id, bool surfacele
       if (surfaceless) {
          egl->egl_display = get_platform_display (EGL_PLATFORM_SURFACELESS_MESA,
                                                   EGL_DEFAULT_DISPLAY, NULL);
-      } else
+      }
+#ifdef ENABLE_GBM
+       else
          egl->egl_display = get_platform_display (EGL_PLATFORM_GBM_KHR,
                                                   (EGLNativeDisplayType)egl->gbm->device, NULL);
+#endif
    } else if (virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_platform_base")) {
       PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display =
          (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress ("eglGetPlatformDisplayEXT");
