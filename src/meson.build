@@ -63,9 +63,12 @@ virglrenderer_sources = [
    'virglrenderer_hw.h',
 ]
 
-vrend_winsys_egl_sources = [
+vrend_winsys_gbm_sources = [
    'vrend_winsys_gbm.c',
    'vrend_winsys_gbm.h',
+]
+
+vrend_winsys_egl_sources = [
    'vrend_winsys_egl.c',
    'vrend_winsys_egl.h',
 ]
@@ -215,9 +218,13 @@ endif
 
 virgl_sources += vrend_sources
 
+if gbm_dep.found()
+   virgl_sources += vrend_winsys_gbm_sources
+   virgl_depends += [gbm_dep]
+endif
+
 if have_egl
    virgl_sources += vrend_winsys_egl_sources
-   virgl_depends += [gbm_dep]
 endif
 
 if have_glx
@@ -271,7 +278,7 @@ libvirgl_dep = declare_dependency(
    include_directories: libvirgl_inc
 )
 
-libvirglrenderer = library(
+libvirclrenderer = library(
    'virclrenderer',
    virglrenderer_sources,
    include_directories: [inc_gallium, inc_configuration],
@@ -289,7 +296,7 @@ pkg.generate(libvirclrenderer,
 )
 
 libvirglrenderer_dep = declare_dependency(
-   link_with: libvirglrenderer,
+   link_with: libvirclrenderer,
    include_directories: libvirgl_inc,
    dependencies : [libvirgl_dep, gallium_dep]
 )
