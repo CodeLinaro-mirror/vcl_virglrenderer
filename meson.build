@@ -77,6 +77,7 @@ conf_data = configuration_data()
 conf_data.set('VERSION', meson.project_version())
 conf_data.set('_GNU_SOURCE', 1)
 conf_data.set('VIRGL_RENDERER_UNSTABLE_APIS', 1)
+conf_data.set('ENABLE_DRM', libdrm_dep.found())
 
 with_tracing = get_option('tracing')
 
@@ -246,7 +247,6 @@ have_vla = not cc.has_header_symbol('stdlib.h', '__STDC_NO_VLA__')
 # drm/msm support requires the compiler to support VLA:
 with_drm_msm = have_vla and get_option('drm-msm-experimental')
 if with_drm_msm
-  conf_data.set('ENABLE_DRM', 1)
   conf_data.set('ENABLE_DRM_MSM', 1)
 endif
 with_drm = with_drm_msm

@@ -63,6 +63,13 @@ option(
 # once ring_idx is plumbed through crosvm (ie. synchronizing between
 # host CPU and guest CPU will be a separate fence timeline)
 option(
+  'drm',
+  type : 'feature',
+  value : 'auto',
+  description : 'enable support for drm'
+)
+
+option(
   'drm-msm-experimental',
   type : 'boolean',
   value : 'false',
