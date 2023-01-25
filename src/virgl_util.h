@@ -35,7 +35,7 @@
 
 #include "util/macros.h"
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 
 #define TRACE_WITH_PERFETTO 1
 #define TRACE_WITH_STDERR 2
