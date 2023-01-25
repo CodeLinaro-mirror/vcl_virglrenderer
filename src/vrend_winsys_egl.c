@@ -36,7 +36,10 @@
 #include <poll.h>
 #include <stdbool.h>
 #include <unistd.h>
+
+#ifdef ENABLE_DRM
 #include <xf86drm.h>
+#endif
 
 #include "util/u_memory.h"
 
