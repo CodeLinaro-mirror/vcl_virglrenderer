@@ -74,7 +74,9 @@ endforeach
 
 prog_python = import('python').find_installation('python3')
 
-libdrm_dep = dependency('libdrm', version : '>=2.4.50')
+not_found = dependency('', required: false)
+libdrm_dep = dependency('libdrm', version : '>=2.4.50', required: get_option('drm'))
+gbm_dep = not_found
 thread_dep = dependency('threads')
 epoxy_dep = dependency('epoxy', version: '>= 1.5.4')
 m_dep = cc.find_library('m')
@@ -181,10 +183,13 @@ else
 endif
 
 if with_egl
-   if cc.has_header('epoxy/egl.h', dependencies: epoxy_dep) and epoxy_dep.get_pkgconfig_variable('epoxy_has_egl') == '1'
-      gbm_dep = dependency('gbm', version: '>= ' + _gbm_ver, required: require_egl)
-      have_egl = gbm_dep.found()
+   if cc.has_header('epoxy/egl.h', dependencies: epoxy_dep) and epoxy_dep.get_variable(pkgconfig: 'epoxy_has_egl') == '1'
+      have_egl = true
       conf_data.set('HAVE_EPOXY_EGL_H', 1)
+      if libdrm_dep.found()
+         gbm_dep = dependency('gbm', version: '>= ' + _gbm_ver, required: require_egl)
+      endif
+      conf_data.set('ENABLE_GBM', gbm_dep.found())
    else
       assert(not require_egl,
              'egl was explicitely requested but it is not supported by epoxy')
@@ -259,6 +264,7 @@ lines = [
 ]
 
 lines += 'egl:       ' + (have_egl ? 'yes' : 'no')
+lines += 'gbm:       ' + (gbm_dep.found() ? 'yes' : 'no')
 lines += 'glx:       ' + (have_glx ? 'yes' : 'no')
 lines += ''
 lines += 'minigbm_alloc: ' + (with_minigbm_allocation ? 'yes' : 'no' )

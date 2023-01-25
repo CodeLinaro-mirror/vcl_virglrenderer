@@ -6,6 +6,7 @@
 #mesondefine ENABLE_MINIGBM_ALLOCATION
 #mesondefine ENABLE_VENUS
 #mesondefine HAVE_FUNC_ATTRIBUTE_VISIBILITY
+#mesondefine ENABLE_GBM
 #mesondefine HAVE_EVENTFD_H
 #mesondefine HAVE_DLFCN_H
 #mesondefine ENABLE_VCL
