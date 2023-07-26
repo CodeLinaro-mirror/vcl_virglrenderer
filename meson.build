@@ -66,7 +66,6 @@ add_project_arguments(cc.get_supported_arguments(flags), language : 'c')
 
 prog_python = import('python').find_installation('python3')
 
-libdrm_dep = dependency('libdrm', version : '>=2.4.50')
 thread_dep = dependency('threads')
 epoxy_dep = dependency('epoxy', version: '>= 1.5.4')
 m_dep = cc.find_library('m', required : false)
@@ -205,8 +204,9 @@ endif
 
 if with_egl
    if cc.has_header('epoxy/egl.h', dependencies: epoxy_dep) and epoxy_dep.get_pkgconfig_variable('epoxy_has_egl') == '1'
+      libdrm_dep = dependency('libdrm', required: require_egl, version : '>=2.4.50')
       gbm_dep = dependency('gbm', version: '>= ' + _gbm_ver, required: require_egl)
-      have_egl = gbm_dep.found()
+      have_egl = libdrm_dep.found() and gbm_dep.found()
       if (have_egl)
          conf_data.set('HAVE_EPOXY_EGL_H', 1)
       else
