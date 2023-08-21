@@ -168,6 +168,13 @@ video_sources = [
    'vrend_video.h',
 ]
 
+vcl_sources = [
+   'vcl/vcomp_common.c',
+   'vcl/vcomp_common.h',
+   'vcl/vcomp_renderer.c',
+   'vcl/vcomp_renderer.h',
+]
+
 virgl_depends = [
    gallium_dep,
    epoxy_dep,
@@ -216,6 +223,10 @@ endif
 if with_video
   virgl_sources += video_sources
   virgl_depends += [libva_dep, libvadrm_dep]
+endif
+
+if with_vcl
+   virgl_sources += vcl_sources
 endif
 
 libvirgl = static_library(
