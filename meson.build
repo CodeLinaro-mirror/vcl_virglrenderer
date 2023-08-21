@@ -212,6 +212,11 @@ if cc.compiles('void __attribute__((hidden)) func() {}')
    conf_data.set('HAVE_FUNC_ATTRIBUTE_VISIBILITY', 1)
 endif
 
+with_vcl = get_option('vcl')
+if with_vcl
+   conf_data.set('ENABLE_VCL', 1)
+endif
+
 configure_file(input : 'config.h.meson',
                output : 'config.h',
                configuration : conf_data)
@@ -258,6 +263,7 @@ lines += ''
 lines += 'minigbm_alloc: ' + (with_minigbm_allocation ? 'yes' : 'no' )
 lines += ''
 lines += 'venus:     ' + (with_venus ? 'yes' : 'no' )
+lines += 'vcl:       ' + (with_vcl ? 'yes' : 'no' )
 lines += ''
 lines += 'tests:     ' + (with_tests ? 'yes' : 'no' )
 lines += 'fuzzer:    ' + (with_fuzzer ? 'yes' : 'no' )

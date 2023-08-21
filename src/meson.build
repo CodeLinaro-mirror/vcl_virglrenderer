@@ -86,6 +86,13 @@ venus_sources = [
    'vkr_ring.h',
 ]
 
+vcl_sources = [
+   'vcl/vcomp_common.c',
+   'vcl/vcomp_common.h',
+   'vcl/vcomp_renderer.c',
+   'vcl/vcomp_renderer.h',
+]
+
 virgl_depends = [
    gallium_dep,
    epoxy_dep,
@@ -117,6 +124,10 @@ endif
 if with_venus
    virgl_sources += venus_sources
    virgl_depends += [venus_dep]
+endif
+
+if with_vcl
+   virgl_sources += vcl_sources
 endif
 
 libvirgl = static_library(
