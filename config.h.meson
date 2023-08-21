@@ -46,6 +46,7 @@
 #mesondefine HAVE_EVENTFD_H
 #mesondefine HAVE_DLFCN_H
 #mesondefine ENABLE_VIDEO
+#mesondefine ENABLE_VCL
 #mesondefine ENABLE_TRACING
 #mesondefine UTIL_ARCH_LITTLE_ENDIAN
 #mesondefine UTIL_ARCH_BIG_ENDIAN
