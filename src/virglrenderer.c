@@ -229,6 +229,9 @@ int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
          return EINVAL;
       ctx = vkr_context_create(nlen, name);
       break;
+   case VIRGL_RENDERER_CAPSET_VCL:
+      ctx = vcomp_context_create(ctx_id, nlen, name);
+      break;
    default:
       return EINVAL;
       break;
