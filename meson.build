@@ -214,6 +214,7 @@ endif
 
 with_vcl = get_option('vcl')
 if with_vcl
+   vcl_dep = dependency('OpenCL')
    conf_data.set('ENABLE_VCL', 1)
 endif
 
