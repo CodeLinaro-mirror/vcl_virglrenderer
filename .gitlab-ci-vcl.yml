@@ -3,12 +3,10 @@ image: $CI_REGISTRY/qqvp/vcl/containers/kvm-dev-ubuntu:latest
 stages:
   - build
 
-build:
+.build:
   stage: build
-  tags:
-    - linux
   script:
-    - meson setup build/no-vcl --buildtype release -Dplatforms=auto 
+    - meson setup build/no-vcl --buildtype release -Dplatforms=auto
     - ninja -C build/no-vcl
     - meson setup build/release --prefix `pwd`/build/install --buildtype release -Dplatforms=auto -Dvcl=true
     - ninja -C build/release install
@@ -16,3 +14,13 @@ build:
     when: always
     paths:
       - build/install
+
+build/linux:
+  extends: .build
+  tags:
+    - linux
+
+build/mac:
+  extends: .build
+  tags:
+    - mac
