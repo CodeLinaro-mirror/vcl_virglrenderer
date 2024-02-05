@@ -1,26 +1,46 @@
 image: $CI_REGISTRY/qqvp/vcl/containers/kvm-dev-ubuntu:latest
 
+variables:
+  VCL_PROTOCOL_URL: $CI_SERVER_URL/$CI_PROJECT_NAMESPACE/venus-protocol
+  VCL_PROTOCOL_BRANCH: main
+  VCL_PROTOCOL_ARTIFACTS_URL: $VCL_PROTOCOL_URL/-/jobs/artifacts/$VCL_PROTOCOL_BRANCH/download?job=build
+
 stages:
   - build
 
 .build:
   stage: build
   script:
+    # In case this has not been triggered by an upstream job, we get UPSTREAM_REF environment variable
+    - |
+      if [[ -z "$UPSTREAM_BRANCH" ]]; then
+        echo "This is not a downstream job"
+      else
+        export VCL_PROTOCOL_ARTIFACTS_URL="$VCL_PROTOCOL_URL/-/jobs/artifacts/$UPSTREAM_BRANCH/download?job=build"
+      fi
+    - echo "Downloading $VCL_PROTOCOL_ARTIFACTS_URL"
+    - curl --location $VCL_PROTOCOL_ARTIFACTS_URL --output vcl-protocol.zip
+    - unzip vcl-protocol.zip -d $CI_PROJECT_DIR
+    - mkdir -p src/vcl/vcl-protocol
+    # This job expects vcl-protocol renderer code to be already available in build
+    - mv build/vcl_protocol_renderer_*.h src/vcl/vcl-protocol
     - meson setup build/no-vcl --buildtype release -Dplatforms=auto
     - ninja -C build/no-vcl
     - meson setup build/release --prefix `pwd`/build/install --buildtype release -Dplatforms=auto -Dvcl=true
     - ninja -C build/release install
   artifacts:
-    when: always
+    when: on_success
     paths:
       - build/install
 
 build/linux:
-  extends: .build
+  extends:
+    - .build
   tags:
     - linux
 
 build/mac:
-  extends: .build
+  extends:
+    - .build
   tags:
     - mac
