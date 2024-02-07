@@ -7,9 +7,12 @@ variables:
 
 stages:
   - build
+  - deploy
 
 .build:
   stage: build
+  rules:
+    - when: always
   script:
     # In case this has not been triggered by an upstream job, we get UPSTREAM_REF environment variable
     - |
@@ -44,3 +47,15 @@ build/mac:
     - .build
   tags:
     - mac
+
+deploy:
+  stage: deploy
+  needs: ["build/linux", "build/mac"]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+  trigger:
+    project: qqvp/vcl/qemu
+    strategy: depend
+    branch: vcl
