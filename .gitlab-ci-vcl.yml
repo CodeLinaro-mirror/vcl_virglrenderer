@@ -3,7 +3,6 @@ image: $CI_REGISTRY/qqvp/vcl/containers/kvm-dev-ubuntu:latest
 variables:
   VCL_PROTOCOL_URL: $CI_SERVER_URL/$CI_PROJECT_NAMESPACE/venus-protocol
   VCL_PROTOCOL_BRANCH: main
-  VCL_PROTOCOL_ARTIFACTS_URL: $VCL_PROTOCOL_URL/-/jobs/artifacts/$VCL_PROTOCOL_BRANCH/download?job=build
 
 stages:
   - build
@@ -16,11 +15,12 @@ stages:
   script:
     # In case this has not been triggered by an upstream job, we get UPSTREAM_REF environment variable
     - |
-      if [[ -z "$UPSTREAM_BRANCH" ]]; then
+      if [[ -z "$VCL_PROTOCOL_UPSTREAM_BRANCH" ]]; then
         echo "This is not a downstream job"
       else
-        export VCL_PROTOCOL_ARTIFACTS_URL="$VCL_PROTOCOL_URL/-/jobs/artifacts/$UPSTREAM_BRANCH/download?job=build"
+        export VCL_PROTOCOL_BRANCH=$VCL_PROTOCOL_UPSTREAM_BRANCH
       fi
+    - export VCL_PROTOCOL_ARTIFACTS_URL="$VCL_PROTOCOL_URL/-/jobs/artifacts/$VCL_PROTOCOL_BRANCH/download?job=build"
     - echo "Downloading $VCL_PROTOCOL_ARTIFACTS_URL"
     - curl --location $VCL_PROTOCOL_ARTIFACTS_URL --output vcl-protocol.zip
     - unzip vcl-protocol.zip -d $CI_PROJECT_DIR
@@ -52,9 +52,9 @@ deploy:
   stage: deploy
   needs: ["build/linux", "build/mac"]
   rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' || $UPSTREAM_BRANCH != ''
   variables:
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    VIRGLRENDERER_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
   trigger:
     project: qqvp/vcl/qemu
     strategy: depend
