@@ -5,26 +5,44 @@ variables:
   VCL_PROTOCOL_BRANCH: main
 
 stages:
+  - fetch
   - build
   - deploy
 
+fetch:
+  stage: fetch
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+  needs:
+    - project: qqvp/vcl/venus-protocol
+      job: build
+      ref: $UPSTREAM_REF
+      artifacts: true
+  script:
+    - ls build
+  artifacts:
+    when: on_success
+    paths:
+      - build
+
 .build:
   stage: build
+  needs:
+    - job: fetch
+      optional: true
   rules:
     - when: always
   script:
-    # In case this has not been triggered by an upstream job,
-    # we get the VCL_PROTOCOL_UPSTREAM_BRANCH environment variable
+    # In case this has been triggered by an upstream merge request,
+    # we get the UPSTREAM_REF environment variable
     - |
-      if [[ -z "$VCL_PROTOCOL_UPSTREAM_BRANCH" ]]; then
+      if [[ -z "$UPSTREAM_REF" ]]; then
         echo "This is not a downstream job"
-      else
-        export VCL_PROTOCOL_BRANCH=$VCL_PROTOCOL_UPSTREAM_BRANCH
+        export VCL_PROTOCOL_ARTIFACTS_URL="$VCL_PROTOCOL_URL/-/jobs/artifacts/$VCL_PROTOCOL_BRANCH/download?job=build"
+        echo "Downloading $VCL_PROTOCOL_ARTIFACTS_URL"
+        curl --location $VCL_PROTOCOL_ARTIFACTS_URL --output vcl-protocol.zip
+        unzip vcl-protocol.zip -d $CI_PROJECT_DIR
       fi
-    - export VCL_PROTOCOL_ARTIFACTS_URL="$VCL_PROTOCOL_URL/-/jobs/artifacts/$VCL_PROTOCOL_BRANCH/download?job=build"
-    - echo "Downloading $VCL_PROTOCOL_ARTIFACTS_URL"
-    - curl --location $VCL_PROTOCOL_ARTIFACTS_URL --output vcl-protocol.zip
-    - unzip vcl-protocol.zip -d $CI_PROJECT_DIR
     - mkdir -p src/vcl/vcl-protocol
     # This job expects vcl-protocol renderer code to be already available in build
     - mv build/vcl_protocol_renderer_*.h src/vcl/vcl-protocol
@@ -49,14 +67,24 @@ build/mac:
   tags:
     - mac
 
-deploy:
+.deploy:
   stage: deploy
   needs: ["build/linux", "build/mac"]
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' || $VCL_PROTOCOL_UPSTREAM_BRANCH != ''
-  variables:
-    VIRGLRENDERER_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
   trigger:
     project: qqvp/vcl/qemu
     strategy: depend
     branch: vcl
+
+deploy/merge:
+  extends: .deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    UPSTREAM_REF: $CI_MERGE_REQUEST_REF_PATH
+
+deploy/chain:
+  extends: .deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'pipeline'
+  variables:
+    UPSTREAM_REF: $CI_COMMIT_REF_NAME
