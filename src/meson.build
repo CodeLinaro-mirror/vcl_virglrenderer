@@ -89,6 +89,8 @@ venus_sources = [
 vcl_sources = [
    'vcl/vcomp_common.c',
    'vcl/vcomp_common.h',
+   'vcl/vcomp_cl_context.c',
+   'vcl/vcomp_cl_context.h',
    'vcl/vcomp_context.c',
    'vcl/vcomp_context.h',
    'vcl/vcomp_cs.c',
