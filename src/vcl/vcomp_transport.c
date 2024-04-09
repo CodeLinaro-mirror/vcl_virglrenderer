@@ -19,7 +19,7 @@ vcomp_dispatch_clSetReplyBufferMESA(struct vcl_dispatch_context *dispatch,
    struct virgl_resource *res = virgl_resource_lookup(args->resource_id);
    if (!res)
    {
-      vcomp_log("Failed to find virgl resource %u", args->resource_id);
+      vrend_printf("Failed to find virgl resource %u", args->resource_id);
       vcomp_cs_decoder_set_fatal(&vctx->decoder);
       return;
    }
@@ -27,7 +27,7 @@ vcomp_dispatch_clSetReplyBufferMESA(struct vcl_dispatch_context *dispatch,
    struct vrend_resource *vres = (struct vrend_resource *)res->pipe_resource;
    if (!vres)
    {
-      vcomp_log("No pipe resource attached to virgl resource %u", args->resource_id);
+      vrend_printf("No pipe resource attached to virgl resource %u", args->resource_id);
       vcomp_cs_decoder_set_fatal(&vctx->decoder);
       return;
    }

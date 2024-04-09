@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <os/os_misc.h>
 
 #include <vcl-protocol/vcl_cl.h>
 
@@ -45,7 +46,7 @@ struct vcomp_object
       return obj;                                                                            \
    }
 
-void vcomp_log(const char *fmt, ...);
+void vrend_printf(const char *fmt, ...);
 
 static inline void *
 vcomp_object_alloc(size_t size, vcomp_object_id id)

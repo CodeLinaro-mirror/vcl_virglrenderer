@@ -12,7 +12,7 @@
 
 int vcomp_renderer_init(void)
 {
-   vcomp_log("initialized");
+   vrend_printf("initialized");
    return 0;
 }
 
@@ -27,7 +27,7 @@ void vcomp_renderer_reset(void)
 size_t
 vcomp_get_capset(void *capset)
 {
-   vcomp_log("getting capset");
+   vrend_printf("getting capset");
    struct virgl_renderer_capset_vcl *c = capset;
    const char *platform_name = "virglrenderer vcomp";
 

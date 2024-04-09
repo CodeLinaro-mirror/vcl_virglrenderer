@@ -16,9 +16,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "util/hash_table.h"
-#include "util/macros.h"
+#include "util/u_hash_table.h"
 #include "util/u_math.h"
+#include <inttypes.h>
 
 /*
  * This is to avoid integer overflows and to catch bogus allocations (e.g.,
@@ -59,8 +59,8 @@ struct vcomp_cs_decoder_temp_pool
 
 struct vcomp_cs_decoder
 {
-   const struct hash_table *object_table;
-   const struct hash_table *resource_table;
+   struct util_hash_table_u64 *object_table;
+   struct util_hash_table *resource_table;
 
    bool fatal_error;
 
@@ -72,8 +72,8 @@ struct vcomp_cs_decoder
 
 static inline void
 vcomp_cs_decoder_init(struct vcomp_cs_decoder *dec,
-                      struct hash_table *object_table,
-                      struct hash_table *resource_table)
+                      struct util_hash_table_u64 *object_table,
+                      struct util_hash_table *resource_table)
 {
    memset(dec, 0, sizeof(*dec));
    dec->object_table = object_table;
@@ -143,12 +143,10 @@ vcomp_cs_decoder_lookup_object(const struct vcomp_cs_decoder *dec,
    if (!id)
       return NULL;
 
-   const struct hash_entry *entry =
-       _mesa_hash_table_search((struct hash_table *)dec->object_table, &id);
-   obj = likely(entry) ? entry->data : NULL;
+   obj = util_hash_table_get_u64(dec->object_table, id);
    if (unlikely(!obj))
    {
-      vcomp_log("failed to look up object %" PRIu64, id);
+      vrend_printf("failed to look up object %" PRIu64, id);
       vcomp_cs_decoder_set_fatal(dec);
    }
 
@@ -165,7 +163,7 @@ vcomp_cs_encoder_write(struct vcomp_cs_encoder *enc,
 
    if (unlikely(size > (size_t)(enc->end - enc->cur)))
    {
-      vcomp_log("failed to write the reply stream");
+      vrend_printf("failed to write the reply stream");
       vcomp_cs_encoder_set_fatal(enc);
       return;
    }
@@ -185,7 +183,7 @@ vcomp_cs_decoder_peek_internal(const struct vcomp_cs_decoder *dec,
 
    if (unlikely(size > (size_t)(dec->end - dec->cur)))
    {
-      vcomp_log("failed to peek %zu bytes", size);
+      vrend_printf("failed to peek %zu bytes", size);
       vcomp_cs_decoder_set_fatal(dec);
       memset(val, 0, val_size);
       return false;
@@ -244,7 +242,7 @@ vcomp_cs_decoder_alloc_temp(struct vcomp_cs_decoder *dec, size_t size)
    {
       if (!vcomp_cs_decoder_alloc_temp_internal(dec, size))
       {
-         vcomp_log("failed to suballocate %zu bytes from the temp pool", size);
+         vrend_printf("failed to suballocate %zu bytes from the temp pool", size);
          vcomp_cs_decoder_set_fatal(dec);
          return NULL;
       }
@@ -253,7 +251,7 @@ vcomp_cs_decoder_alloc_temp(struct vcomp_cs_decoder *dec, size_t size)
    /* align to 64-bit after we know size is at most
     * Vcomp_CS_DECODER_TEMP_POOL_MAX_SIZE and cannot overflow
     */
-   size = align64(size, 8);
+   size = align(size, 8);
    assert(size <= (size_t)(pool->end - pool->cur));
 
    void *ptr = pool->cur;
@@ -267,7 +265,7 @@ vcomp_cs_decoder_alloc_temp_array(struct vcomp_cs_decoder *dec, size_t size, siz
    size_t alloc_size;
    if (unlikely(__builtin_mul_overflow(size, count, &alloc_size)))
    {
-      vcomp_log("overflow in array allocation of %zu * %zu bytes", size, count);
+      vrend_printf("overflow in array allocation of %zu * %zu bytes", size, count);
       vcomp_cs_decoder_set_fatal(dec);
       return NULL;
    }

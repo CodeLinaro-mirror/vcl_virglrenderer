@@ -156,7 +156,7 @@ endif
 libvirgl = static_library(
    'virgl',
    virgl_sources,
-   include_directories: [inc_gallium, inc_configuration, 'vcl', 'drm', 'drm/drm-uapi'],
+   include_directories: [inc_gallium, inc_configuration, 'vcl'],
    dependencies : virgl_depends,
 )
 

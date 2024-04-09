@@ -10,7 +10,7 @@
 
 #include "vcl-protocol/vcl_protocol_renderer_defines.h"
 
-#include "util/hash_table.h"
+#include "util/u_hash_table.h"
 #include "virgl_context.h"
 
 struct vcomp_context
@@ -18,8 +18,8 @@ struct vcomp_context
    struct virgl_context base;
    char debug_name[32];
 
-   struct hash_table *object_table;
-   struct hash_table *resource_table;
+   struct util_hash_table_u64 *object_table;
+   struct util_hash_table *resource_table;
 
    bool cs_fatal_error;
    struct vcomp_cs_decoder decoder;
@@ -38,12 +38,12 @@ vcomp_context_set_fatal(struct vcomp_context *ctx)
 }
 
 static inline bool
-vcomp_context_validate_object_id(struct vcomp_context *ctx, vcomp_object_id id)
+vcomp_context_validate_object_id(struct vcomp_context *vctx, vcomp_object_id id)
 {
-   if (unlikely(!id || _mesa_hash_table_search(ctx->object_table, &id)))
+   if (unlikely(!id || util_hash_table_get_u64(vctx->object_table, id)))
    {
-      vcomp_log("invalid object id %" PRIu64, id);
-      vcomp_context_set_fatal(ctx);
+      vrend_printf("invalid object id %" PRIu64, id);
+      vcomp_context_set_fatal(vctx);
       return false;
    }
 
@@ -54,36 +54,34 @@ static inline void
 vcomp_context_add_object(struct vcomp_context *vctx, struct vcomp_object *obj)
 {
    assert(obj->id);
-   assert(!_mesa_hash_table_search(vctx->object_table, &obj->id));
-   _mesa_hash_table_insert(vctx->object_table, &obj->id, obj);
+   assert(!util_hash_table_get_u64(vctx->object_table, obj->id));
+   util_hash_table_set_u64(vctx->object_table, obj->id, obj);
 }
 
 static inline void
-vcomp_context_free_object(struct hash_entry *entry)
+vcomp_context_free_object(void* data)
 {
-   struct vcomp_object *obj = entry->data;
+   struct vcomp_object *obj = data;
    free(obj);
 }
 
 static inline void
 vcomp_context_remove_object(struct vcomp_context *vctx, struct vcomp_object *obj)
 {
-   assert(_mesa_hash_table_search(vctx->object_table, &obj->id));
+   assert(util_hash_table_get_u64(vctx->object_table, obj->id));
 
-   struct hash_entry *entry = _mesa_hash_table_search(vctx->object_table, &obj->id);
+   void *entry = util_hash_table_get_u64(vctx->object_table, obj->id);
    if (likely(entry))
    {
-      vcomp_context_free_object(entry);
-      _mesa_hash_table_remove(vctx->object_table, entry);
+      // The object is freed within this function through a callback
+      util_hash_table_remove_u64(vctx->object_table, obj->id);
    }
 }
 
 static inline void *
 vcomp_context_get_object(struct vcomp_context *vctx, vcomp_object_id obj_id)
 {
-   const struct hash_entry *entry = _mesa_hash_table_search(vctx->object_table, &obj_id);
-   void *obj = likely(entry) ? entry->data : NULL;
-   return obj;
+   return util_hash_table_get_u64(vctx->object_table, obj_id);
 }
 
 inline static bool

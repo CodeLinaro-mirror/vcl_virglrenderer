@@ -10,17 +10,4 @@
 
 #include <string.h>
 #include <stdlib.h>
-
-void vcomp_log(const char *fmt, ...)
-{
-   va_list va;
-   char *tmp_fmt = NULL;
-
-   if (asprintf(&tmp_fmt, "%s\n", fmt) < 0)
-      return;
-
-   va_start(va, fmt);
-   virgl_prefixed_logv("vcomp", VIRGL_LOG_LEVEL_INFO, tmp_fmt, va);
-   va_end(va);
-   free(tmp_fmt);
-}
+#include <stdarg.h>

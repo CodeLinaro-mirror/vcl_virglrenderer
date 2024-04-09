@@ -22,7 +22,7 @@
 #define XXH_INLINE_ALL
 #include "util/xxhash.h"
 
-#include "util/hash_table.h"
+#include "util/u_hash_table.h"
 #include "util/u_memory.h"
 #include "vrend_renderer.h"
 
@@ -32,13 +32,6 @@ struct vcomp_resource_attachment
 {
    struct virgl_resource *res;
 };
-
-static void
-vcomp_context_free_resource(struct hash_entry *entry)
-{
-   struct vcomp_resource_attachment *att = entry->data;
-   free(att);
-}
 
 static void
 vcomp_context_destroy(struct virgl_context *ctx)
@@ -55,8 +48,8 @@ vcomp_context_destroy(struct virgl_context *ctx)
    free(vctx->platform_handles);
    free(vctx->platforms);
 
-   _mesa_hash_table_destroy(vctx->object_table, vcomp_context_free_object);
-   _mesa_hash_table_destroy(vctx->resource_table, vcomp_context_free_resource);
+   util_hash_table_destroy_u64(vctx->object_table);
+   util_hash_table_destroy(vctx->resource_table);
 
    free(vctx);
 }
@@ -64,25 +57,23 @@ vcomp_context_destroy(struct virgl_context *ctx)
 static inline struct vcomp_resource_attachment *
 vcomp_context_get_resource(struct vcomp_context *vctx, uint32_t res_id)
 {
-   const struct hash_entry *entry = _mesa_hash_table_search(vctx->resource_table, &res_id);
-   return likely(entry) ? entry->data : NULL;
+   return util_hash_table_get(vctx->resource_table, uintptr_to_pointer(res_id));
 }
 
 static inline void
 vcomp_context_add_resource(struct vcomp_context *vctx, struct vcomp_resource_attachment *att)
 {
-   assert(!_mesa_hash_table_search(vctx->resource_table, &att->res->res_id));
-   _mesa_hash_table_insert(vctx->resource_table, &att->res->res_id, att);
+   assert(!util_hash_table_get(vctx->resource_table, uintptr_to_pointer(att->res->res_id)));
+   util_hash_table_set(vctx->resource_table, uintptr_to_pointer(att->res->res_id), att);
 }
 
 static inline void
 vcomp_context_remove_resource(struct vcomp_context *vctx, uint32_t res_id)
 {
-   struct hash_entry *entry = _mesa_hash_table_search(vctx->resource_table, &res_id);
+   void *entry = util_hash_table_get(vctx->resource_table, uintptr_to_pointer(res_id));
    if (likely(entry))
    {
-      vcomp_context_free_resource(entry);
-      _mesa_hash_table_remove(vctx->resource_table, entry);
+      util_hash_table_remove(vctx->resource_table, uintptr_to_pointer(res_id));
    }
 }
 
@@ -130,7 +121,7 @@ vcomp_context_transfer_3d(struct virgl_context *ctx,
 
    if (!res->pipe_resource)
    {
-      vcomp_log("transfer-3d: Failed to find resource %d", res->res_id);
+      vrend_printf("transfer-3d: Failed to find resource %d", res->res_id);
       return EINVAL;
    }
 
@@ -199,7 +190,7 @@ vcomp_context_submit_cmd(struct virgl_context *base, const void *buffer, size_t 
 static void
 vcomp_dispatch_debug_log(UNUSED struct vcl_dispatch_context *dispatch, const char *msg)
 {
-   vcomp_log(msg);
+   vrend_printf(msg);
 }
 
 static void
@@ -251,18 +242,6 @@ vcomp_context_init_base(struct vcomp_context *vctx,
    ctx->get_fencing_fd = vcomp_get_fencing_fd;
 }
 
-static uint32_t
-vcomp_hash_u64(const void *key)
-{
-   return XXH32(key, sizeof(uint64_t), 0);
-}
-
-static bool
-vcomp_key_u64_equal(const void *key1, const void *key2)
-{
-   return *(const uint64_t *)key1 == *(const uint64_t *)key2;
-}
-
 struct virgl_context *
 vcomp_context_create(int id, uint32_t nlen, const char *debug_name)
 {
@@ -280,12 +259,14 @@ vcomp_context_create(int id, uint32_t nlen, const char *debug_name)
    }
 
    vctx->object_table =
-       _mesa_hash_table_create(NULL, vcomp_hash_u64, vcomp_key_u64_equal);
+       util_hash_table_create_u64(vcomp_context_free_object);
    if (!vctx->object_table)
       goto err_ctx_object_table;
 
    vctx->resource_table =
-       _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
+       util_hash_table_create(hash_func_u32,
+                              compare_func,
+                              vcomp_context_free_object);
    if (!vctx->resource_table)
       goto err_ctx_resource_table;
 
@@ -295,12 +276,12 @@ vcomp_context_create(int id, uint32_t nlen, const char *debug_name)
    vcomp_context_init_base(vctx, id);
    vcomp_context_init_dispatch(vctx);
 
-   vcomp_log("context %d created: `%s`", vctx->base.ctx_id, vctx->debug_name);
+   vrend_printf("context %d created: `%s`", vctx->base.ctx_id, vctx->debug_name);
 
    return &vctx->base;
 
 err_ctx_resource_table:
-   _mesa_hash_table_destroy(vctx->object_table, vcomp_context_free_object);
+   util_hash_table_destroy_u64(vctx->object_table);
 err_ctx_object_table:
    free(vctx);
    return NULL;
