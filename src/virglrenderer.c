@@ -207,7 +207,8 @@ int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
                                              const char *name)
 {
    const enum virgl_renderer_capset capset_id =
-      ctx_flags & VIRGL_RENDERER_CONTEXT_FLAG_CAPSET_ID_MASK;
+      VIRGL_RENDERER_CAPSET_VCL;
+   //   ctx_flags & VIRGL_RENDERER_CONTEXT_FLAG_CAPSET_ID_MASK;
    struct virgl_context *ctx;
    int ret;
 
