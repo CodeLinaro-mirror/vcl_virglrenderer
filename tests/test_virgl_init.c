@@ -30,7 +30,7 @@
 #include <check.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <virglrenderer.h>
+#include <virclrenderer.h>
 #include <gbm.h>
 #include <sys/uio.h>
 #include "testvirgl.h"
@@ -46,7 +46,7 @@ static struct virgl_renderer_callbacks test_cbs;
 START_TEST(virgl_init_no_cbs)
 {
   int ret;
-  ret = virgl_renderer_init(&mystruct, 0, NULL);
+  ret = vircl_renderer_init(&mystruct, 0, NULL);
   ck_assert_int_eq(ret, -1);
 }
 END_TEST
@@ -54,7 +54,7 @@ END_TEST
 START_TEST(virgl_init_no_cookie)
 {
   int ret;
-  ret = virgl_renderer_init(NULL, 0, &test_cbs);
+  ret = vircl_renderer_init(NULL, 0, &test_cbs);
   ck_assert_int_eq(ret, -1);
 }
 END_TEST
@@ -65,20 +65,20 @@ START_TEST(virgl_init_cbs_wrong_ver)
   struct virgl_renderer_callbacks testcbs;
   memset(&testcbs, 0, sizeof(testcbs));
   testcbs.version = VIRGL_RENDERER_CALLBACKS_VERSION + 1;
-  ret = virgl_renderer_init(&mystruct, 0, &testcbs);
+  ret = vircl_renderer_init(&mystruct, 0, &testcbs);
   ck_assert_int_eq(ret, -1);
 }
 END_TEST
 
 START_TEST(virgl_init_cleanup_without_init)
 {
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
 START_TEST(virgl_init_reset_without_init)
 {
-  virgl_renderer_reset();
+  vircl_renderer_reset();
 }
 END_TEST
 
@@ -86,9 +86,9 @@ START_TEST(virgl_init_egl)
 {
   int ret;
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 
 END_TEST
@@ -97,11 +97,11 @@ START_TEST(virgl_init_egl_double_init)
 {
   int ret;
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -112,21 +112,21 @@ START_TEST(virgl_init_egl_double_init_conflict_args)
   int ret;
 
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  ret = virgl_renderer_init(&local_struct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&local_struct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, -EBUSY);
 
-  ret = virgl_renderer_init(&mystruct, 0, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, 0, &test_cbs);
   ck_assert_int_eq(ret, -EBUSY);
 
   memset(&local_cbs, 0, sizeof(local_cbs));
   local_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &local_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &local_cbs);
   ck_assert_int_eq(ret, -EBUSY);
 
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -134,13 +134,13 @@ START_TEST(virgl_init_egl_create_ctx)
 {
   int ret;
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
-  ret = virgl_renderer_context_create(1, strlen("test1"), "test1");
+  ret = vircl_renderer_context_create(1, strlen("test1"), "test1");
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_context_destroy(1);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_context_destroy(1);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -149,12 +149,12 @@ START_TEST(virgl_init_egl_create_ctx_0)
   int ret;
 
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
-  ret = virgl_renderer_context_create(0, strlen("test1"), "test1");
+  ret = vircl_renderer_context_create(0, strlen("test1"), "test1");
   ck_assert_int_eq(ret, EINVAL);
 
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -162,11 +162,11 @@ START_TEST(virgl_init_egl_destroy_ctx_illegal)
 {
   int ret;
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_context_destroy(1);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_context_destroy(1);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -175,8 +175,8 @@ START_TEST(virgl_init_egl_create_ctx_leak)
   testvirgl_init_single_ctx();
 
   /* don't destroy the context - leak it make sure cleanup catches it */
-  /*virgl_renderer_context_destroy(1);*/
-  virgl_renderer_cleanup(&mystruct);
+  /*vircl_renderer_context_destroy(1);*/
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -187,14 +187,14 @@ START_TEST(virgl_init_egl_create_ctx_create_bind_res)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(1, res.handle);
+  vircl_renderer_ctx_attach_resource(1, res.handle);
 
-  virgl_renderer_ctx_detach_resource(1, res.handle);
+  vircl_renderer_ctx_detach_resource(1, res.handle);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -205,12 +205,12 @@ START_TEST(virgl_init_egl_create_ctx_create_bind_res_illegal_ctx)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(2, res.handle);
+  vircl_renderer_ctx_attach_resource(2, res.handle);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -222,12 +222,12 @@ START_TEST(virgl_init_egl_create_ctx_create_bind_res_illegal_res)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(1, 2);
+  vircl_renderer_ctx_attach_resource(1, 2);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -238,12 +238,12 @@ START_TEST(virgl_init_egl_create_ctx_create_unbind_no_bind)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_detach_resource(1, res.handle);
+  vircl_renderer_ctx_detach_resource(1, res.handle);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -254,12 +254,12 @@ START_TEST(virgl_init_egl_create_ctx_create_unbind_illegal_ctx)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_detach_resource(2, res.handle);
+  vircl_renderer_ctx_detach_resource(2, res.handle);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -273,14 +273,14 @@ START_TEST(virgl_init_egl_create_ctx_create_bind_res_leak)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(1, res.handle);
+  vircl_renderer_ctx_attach_resource(1, res.handle);
 
-  /*virgl_renderer_ctx_detach_resource(1, res.handle);*/
+  /*vircl_renderer_ctx_detach_resource(1, res.handle);*/
 
-  /*virgl_renderer_resource_unref(1);*/
+  /*vircl_renderer_resource_unref(1);*/
   /* don't detach or destroy resource - it should still get cleanedup */
   testvirgl_fini_single_ctx();
 }
@@ -293,12 +293,12 @@ START_TEST(virgl_init_egl_create_ctx_reset)
   ret = testvirgl_init_single_ctx();
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_reset();
+  vircl_renderer_reset();
 
   /* reset should have destroyed the context */
-  ret = virgl_renderer_context_create(1, strlen("test1"), "test1");
+  ret = vircl_renderer_context_create(1, strlen("test1"), "test1");
   ck_assert_int_eq(ret, 0);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -308,14 +308,14 @@ START_TEST(virgl_init_get_caps_set0)
   uint32_t max_ver, max_size;
 
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_get_cap_set(0, &max_ver, &max_size);
+  vircl_renderer_get_cap_set(0, &max_ver, &max_size);
   ck_assert_int_eq(max_ver, 0);
   ck_assert_int_eq(max_size, 0);
 
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -325,20 +325,20 @@ START_TEST(virgl_init_get_caps_set1)
   uint32_t max_ver, max_size;
   void *caps;
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_get_cap_set(1, &max_ver, &max_size);
+  vircl_renderer_get_cap_set(1, &max_ver, &max_size);
   ck_assert_int_ge(max_ver, 1);
   ck_assert_int_ne(max_size, 0);
   ck_assert_int_ge(max_size, sizeof(struct virgl_caps_v1));
 
   caps = malloc(max_size);
 
-  virgl_renderer_fill_caps(0, 0, caps);
+  vircl_renderer_fill_caps(0, 0, caps);
 
   free(caps);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -348,17 +348,17 @@ START_TEST(virgl_init_get_caps_null)
   uint32_t max_ver, max_size;
 
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_get_cap_set(1, &max_ver, &max_size);
+  vircl_renderer_get_cap_set(1, &max_ver, &max_size);
   ck_assert_int_ge(max_ver, 1);
   ck_assert_int_ne(max_size, 0);
   ck_assert_int_ge(max_size, sizeof(struct virgl_caps_v1));
 
-  virgl_renderer_fill_caps(0, 0, NULL);
+  vircl_renderer_fill_caps(0, 0, NULL);
 
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 
@@ -370,12 +370,12 @@ START_TEST(virgl_test_get_resource_info)
 
   testvirgl_init_simple_2d_resource(&res, 1);
   res.format = VIRGL_FORMAT_B8G8R8X8_UNORM;
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(1, res.handle);
+  vircl_renderer_ctx_attach_resource(1, res.handle);
 
-  ret = virgl_renderer_resource_get_info(res.handle, &info);
+  ret = vircl_renderer_resource_get_info(res.handle, &info);
   ck_assert_int_eq(ret, 0);
 
   ck_assert(info.drm_fourcc == GBM_FORMAT_ABGR8888 ||
@@ -387,9 +387,9 @@ START_TEST(virgl_test_get_resource_info)
   ck_assert_int_eq(res.height, info.height);
   ck_assert_int_eq(res.depth, info.depth);
   ck_assert_int_eq(res.flags, info.flags);
-  virgl_renderer_ctx_detach_resource(1, res.handle);
+  vircl_renderer_ctx_detach_resource(1, res.handle);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -400,16 +400,16 @@ START_TEST(virgl_test_get_resource_info_no_info)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_ctx_attach_resource(1, res.handle);
+  vircl_renderer_ctx_attach_resource(1, res.handle);
 
-  ret = virgl_renderer_resource_get_info(1, NULL);
+  ret = vircl_renderer_resource_get_info(1, NULL);
   ck_assert_int_eq(ret, EINVAL);
 
-  virgl_renderer_ctx_detach_resource(1, res.handle);
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_ctx_detach_resource(1, res.handle);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -419,10 +419,10 @@ START_TEST(virgl_test_get_resource_info_no_res)
   int ret;
   struct virgl_renderer_resource_info info;
 
-  ret = virgl_renderer_resource_get_info(1, &info);
+  ret = vircl_renderer_resource_get_info(1, &info);
   ck_assert_int_eq(ret, EINVAL);
 
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -436,19 +436,19 @@ START_TEST(virgl_init_egl_create_ctx_create_attach_res)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
   iovs[0].iov_base = malloc(4096);
   iovs[0].iov_len = 4096;
 
-  ret = virgl_renderer_resource_attach_iov(1, iovs, 1);
+  ret = vircl_renderer_resource_attach_iov(1, iovs, 1);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_resource_detach_iov(1, &iovs_r, &num_r);
+  vircl_renderer_resource_detach_iov(1, &iovs_r, &num_r);
 
   free(iovs[0].iov_base);
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -461,19 +461,19 @@ START_TEST(virgl_init_egl_create_ctx_create_attach_res_detach_no_iovs)
 
   testvirgl_init_simple_1d_resource(&res, 1);
 
-  ret = virgl_renderer_resource_create(&res, NULL, 0);
+  ret = vircl_renderer_resource_create(&res, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
   iovs[0].iov_base = malloc(4096);
   iovs[0].iov_len = 4096;
 
-  ret = virgl_renderer_resource_attach_iov(1, iovs, 1);
+  ret = vircl_renderer_resource_attach_iov(1, iovs, 1);
   ck_assert_int_eq(ret, 0);
 
-  virgl_renderer_resource_detach_iov(1, NULL, &num_r);
+  vircl_renderer_resource_detach_iov(1, NULL, &num_r);
 
   free(iovs[0].iov_base);
-  virgl_renderer_resource_unref(1);
+  vircl_renderer_resource_unref(1);
 }
 END_TEST
 
@@ -483,15 +483,15 @@ START_TEST(virgl_init_egl_create_ctx_create_attach_res_illegal_res)
   struct iovec iovs[1];
 
   test_cbs.version = 1;
-  ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+  ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
   ck_assert_int_eq(ret, 0);
 
-  ret = virgl_renderer_resource_attach_iov(1, iovs, 1);
+  ret = vircl_renderer_resource_attach_iov(1, iovs, 1);
   ck_assert_int_eq(ret, EINVAL);
 
-  virgl_renderer_resource_unref(1);
-  virgl_renderer_context_destroy(1);
-  virgl_renderer_cleanup(&mystruct);
+  vircl_renderer_resource_unref(1);
+  vircl_renderer_context_destroy(1);
+  vircl_renderer_cleanup(&mystruct);
 }
 END_TEST
 

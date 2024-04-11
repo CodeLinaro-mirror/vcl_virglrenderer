@@ -33,7 +33,7 @@
 #include "testvirgl.h"
 
 #include "virgl_hw.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 
 int context_flags = VIRGL_RENDERER_USE_EGL;
 
@@ -118,11 +118,11 @@ int testvirgl_init_single_ctx(void)
 
     test_cbs.version = 1;
     test_cbs.write_fence = testvirgl_write_fence;
-    ret = virgl_renderer_init(&mystruct, context_flags, &test_cbs);
+    ret = vircl_renderer_init(&mystruct, context_flags, &test_cbs);
     ck_assert_int_eq(ret, 0);
     if (ret)
 	return ret;
-    ret = virgl_renderer_context_create(1, strlen("test1"), "test1");
+    ret = vircl_renderer_context_create(1, strlen("test1"), "test1");
     ck_assert_int_eq(ret, 0);
     return ret;
 
@@ -135,13 +135,13 @@ void testvirgl_init_single_ctx_nr(void)
 
 void testvirgl_fini_single_ctx(void)
 {
-    virgl_renderer_context_destroy(1);
-    virgl_renderer_cleanup(&mystruct);
+    vircl_renderer_context_destroy(1);
+    vircl_renderer_cleanup(&mystruct);
 }
 
 static void testvirgl_flush(struct virgl_context *ctx)
 {
-    virgl_renderer_submit_cmd(ctx->cbuf->buf, ctx->ctx_id, ctx->cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx->cbuf->buf, ctx->ctx_id, ctx->cbuf->cdw);
     ctx->cbuf->cdw = 0;
 }
 
@@ -186,7 +186,7 @@ int testvirgl_create_backed_simple_2d_res(struct virgl_resource *res,
     testvirgl_init_simple_2d_resource(&args, handle);
     args.width = w;
     args.height = h;
-    ret = virgl_renderer_resource_create(&args, NULL, 0);
+    ret = vircl_renderer_resource_create(&args, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     res->handle = handle;
@@ -200,7 +200,7 @@ int testvirgl_create_backed_simple_2d_res(struct virgl_resource *res,
     res->iovs[0].iov_len = backing_size;
     res->niovs = 1;
 
-    virgl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
+    vircl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
     return 0;
 }
 
@@ -212,7 +212,7 @@ int testvirgl_create_backed_simple_1d_res(struct virgl_resource *res,
     int ret;
 
     testvirgl_init_simple_1d_resource(&args, handle);
-    ret = virgl_renderer_resource_create(&args, NULL, 0);
+    ret = vircl_renderer_resource_create(&args, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     res->handle = handle;
@@ -226,7 +226,7 @@ int testvirgl_create_backed_simple_1d_res(struct virgl_resource *res,
     res->iovs[0].iov_len = backing_size;
     res->niovs = 1;
 
-    virgl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
+    vircl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
     return 0;
 }
 
@@ -235,11 +235,11 @@ void testvirgl_destroy_backed_res(struct virgl_resource *res)
     struct iovec *iovs;
     int niovs;
 
-    virgl_renderer_resource_detach_iov(res->handle, &iovs, &niovs);
+    vircl_renderer_resource_detach_iov(res->handle, &iovs, &niovs);
 
     free(iovs[0].iov_base);
     free(iovs);
-    virgl_renderer_resource_unref(res->handle);
+    vircl_renderer_resource_unref(res->handle);
 }
 
 int testvirgl_create_backed_simple_buffer(struct virgl_resource *res,
@@ -251,7 +251,7 @@ int testvirgl_create_backed_simple_buffer(struct virgl_resource *res,
 
     testvirgl_init_simple_buffer_sized(&args, handle, size);
     args.bind = binding;
-    ret = virgl_renderer_resource_create(&args, NULL, 0);
+    ret = vircl_renderer_resource_create(&args, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     res->handle = handle;
@@ -265,7 +265,7 @@ int testvirgl_create_backed_simple_buffer(struct virgl_resource *res,
     res->iovs[0].iov_len = backing_size;
     res->niovs = 1;
 
-    virgl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
+    vircl_renderer_resource_attach_iov(res->handle, res->iovs, res->niovs);
     return 0;
 }
 
@@ -277,7 +277,7 @@ int testvirgl_create_unbacked_simple_buffer(struct virgl_resource *res,
 
     testvirgl_init_simple_buffer_sized(&args, handle, size);
     args.bind = binding;
-    ret = virgl_renderer_resource_create(&args, NULL, 0);
+    ret = vircl_renderer_resource_create(&args, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     res->handle = handle;
@@ -293,13 +293,13 @@ static void *get_caps(void)
     uint32_t max_ver, max_size;
     void *caps;
 
-    virgl_renderer_get_cap_set(1, &max_ver, &max_size);
+    vircl_renderer_get_cap_set(1, &max_ver, &max_size);
     ck_assert_int_ge(max_ver, 1);
     ck_assert_int_ne(max_size, 0);
     ck_assert_int_ge(max_size, sizeof(struct virgl_caps_v1));
     caps = malloc(max_size);
 
-    virgl_renderer_fill_caps(0, 0, caps);
+    vircl_renderer_fill_caps(0, 0, caps);
     return caps;
 }
 
