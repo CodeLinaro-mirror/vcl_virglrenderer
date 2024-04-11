@@ -32,7 +32,7 @@
 #include "vrend_winsys_egl.h"
 #endif
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 
 #ifndef DRM_FORMAT_MOD_INVALID
 #define DRM_FORMAT_MOD_INVALID 0x00ffffffffffffffULL

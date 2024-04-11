@@ -51,7 +51,7 @@ render_context_import_resource(struct render_context *ctx,
       .size = size,
    };
 
-   int ret = virgl_renderer_resource_import_blob(&import_args);
+   int ret = vircl_renderer_resource_import_blob(&import_args);
    if (ret) {
       render_log("failed to import blob resource %d (%d)", res_id, ret);
       return false;
