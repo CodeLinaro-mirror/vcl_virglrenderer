@@ -43,7 +43,7 @@
 #include "util/u_memory.h"
 #include "vtest.h"
 #include "vtest_protocol.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 

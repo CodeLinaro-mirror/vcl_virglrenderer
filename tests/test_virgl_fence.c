@@ -32,7 +32,7 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <virglrenderer.h>
+#include <virclrenderer.h>
 
 #include "testvirgl.h"
 
@@ -43,7 +43,7 @@ START_TEST(virgl_fence_create)
    ck_assert_int_eq(ret, 0);
 
    testvirgl_reset_fence();
-   ret = virgl_renderer_create_fence(1, 0);
+   ret = vircl_renderer_create_fence(1, 0);
    ck_assert_int_eq(ret, 0);
 
    testvirgl_fini_single_ctx();
@@ -58,13 +58,13 @@ START_TEST(virgl_fence_poll)
    ck_assert_int_eq(ret, 0);
 
    testvirgl_reset_fence();
-   ret = virgl_renderer_create_fence(target_seqno, 0);
+   ret = vircl_renderer_create_fence(target_seqno, 0);
    ck_assert_int_eq(ret, 0);
 
    do {
       int seqno;
 
-      virgl_renderer_poll();
+      vircl_renderer_poll();
       seqno = testvirgl_get_last_fence();
       if (seqno == target_seqno)
          break;
@@ -93,14 +93,14 @@ START_TEST(virgl_fence_poll_many)
    last_seqno = 0;
 
    for (i = 0; i < fence_count; i++) {
-      ret = virgl_renderer_create_fence(base_seqno + i, 0);
+      ret = vircl_renderer_create_fence(base_seqno + i, 0);
       ck_assert_int_eq(ret, 0);
    }
 
    do {
       int seqno;
 
-      virgl_renderer_poll();
+      vircl_renderer_poll();
       seqno = testvirgl_get_last_fence();
       if (seqno == target_seqno)
          break;
@@ -148,16 +148,16 @@ START_TEST(virgl_fence_export)
    ck_assert_int_eq(ret, 0);
 
    testvirgl_reset_fence();
-   ret = virgl_renderer_create_fence(target_seqno, 0);
+   ret = vircl_renderer_create_fence(target_seqno, 0);
    ck_assert_int_eq(ret, 0);
 
-   ret = virgl_renderer_export_fence(target_seqno, &fd);
+   ret = vircl_renderer_export_fence(target_seqno, &fd);
    ck_assert_int_eq(ret, 0);
 
    ret = wait_sync_fd(fd, -1);
    ck_assert_int_eq(ret, 0);
 
-   virgl_renderer_poll();
+   vircl_renderer_poll();
    ck_assert_int_eq(testvirgl_get_last_fence(), target_seqno);
 
    close(fd);
@@ -179,7 +179,7 @@ START_TEST(virgl_fence_export_signaled)
 
    /* when there is no active fence, a signaled fd is always returned */
    for (i = 0; i < test_range; i++) {
-      ret = virgl_renderer_export_fence(target_seqno + 1 + i, &fd);
+      ret = vircl_renderer_export_fence(target_seqno + 1 + i, &fd);
       ck_assert_int_eq(ret, 0);
 
       ret = wait_sync_fd(fd, 0);
@@ -188,14 +188,14 @@ START_TEST(virgl_fence_export_signaled)
       close(fd);
    }
 
-   ret = virgl_renderer_create_fence(target_seqno, 0);
+   ret = vircl_renderer_create_fence(target_seqno, 0);
    ck_assert_int_eq(ret, 0);
 
    /* when there is any active fence, a signaled fd is returned when the
     * requested seqno is smaller than the first active fence
     */
    for (i = 0; i < test_range; i++) {
-      ret = virgl_renderer_export_fence(target_seqno - 1 - i, &fd);
+      ret = vircl_renderer_export_fence(target_seqno - 1 - i, &fd);
       ck_assert_int_eq(ret, 0);
 
       ret = wait_sync_fd(fd, 0);
@@ -219,13 +219,13 @@ START_TEST(virgl_fence_export_invalid)
    ret = testvirgl_init_single_ctx();
    ck_assert_int_eq(ret, 0);
 
-   ret = virgl_renderer_create_fence(target_seqno, 0);
+   ret = vircl_renderer_create_fence(target_seqno, 0);
    ck_assert_int_eq(ret, 0);
-   ret = virgl_renderer_create_fence(target_seqno2, 0);
+   ret = vircl_renderer_create_fence(target_seqno2, 0);
    ck_assert_int_eq(ret, 0);
 
    for (seqno = target_seqno; seqno <= target_seqno2 + 1; seqno++) {
-      ret = virgl_renderer_export_fence(seqno, &fd);
+      ret = vircl_renderer_export_fence(seqno, &fd);
       if (seqno == target_seqno || seqno == target_seqno2) {
          ck_assert_int_eq(ret, 0);
          close(fd);
@@ -271,18 +271,18 @@ static bool detect_fence_export_support(void)
    memset(&dummy_cbs, 0, sizeof(dummy_cbs));
    dummy_cbs.version = 1;
 
-   ret = virgl_renderer_init(&dummy_cookie, context_flags, &dummy_cbs);
+   ret = vircl_renderer_init(&dummy_cookie, context_flags, &dummy_cbs);
    if (ret)
       return false;
 
-   ret = virgl_renderer_export_fence(0, &fd);
+   ret = vircl_renderer_export_fence(0, &fd);
    if (ret) {
-      virgl_renderer_cleanup(&dummy_cookie);
+      vircl_renderer_cleanup(&dummy_cookie);
       return false;
    }
 
    close(fd);
-   virgl_renderer_cleanup(&dummy_cookie);
+   vircl_renderer_cleanup(&dummy_cookie);
    return true;
 }
 
