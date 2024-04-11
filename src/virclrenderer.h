@@ -100,17 +100,17 @@ struct virgl_renderer_callbacks {
 
 #endif /* VIRGL_RENDERER_UNSTABLE_APIS */
 
-VIRGL_EXPORT int virgl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks *cb);
-VIRGL_EXPORT void virgl_renderer_poll(void); /* force fences */
+VIRGL_EXPORT int vircl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks *cb);
+VIRGL_EXPORT void vircl_renderer_poll(void); /* force fences */
 
 /* we need to give qemu the cursor resource contents */
-VIRGL_EXPORT void *virgl_renderer_get_cursor_data(uint32_t resource_id, uint32_t *width, uint32_t *height);
+VIRGL_EXPORT void *vircl_renderer_get_cursor_data(uint32_t resource_id, uint32_t *width, uint32_t *height);
 
-VIRGL_EXPORT void virgl_renderer_get_rect(int resource_id, struct iovec *iov, unsigned int num_iovs,
+VIRGL_EXPORT void vircl_renderer_get_rect(int resource_id, struct iovec *iov, unsigned int num_iovs,
                                           uint32_t offset, int x, int y, int width, int height);
 
-VIRGL_EXPORT int virgl_renderer_get_fd_for_texture(uint32_t tex_id, int *fd);
-VIRGL_EXPORT int virgl_renderer_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, int *offset);
+VIRGL_EXPORT int vircl_renderer_get_fd_for_texture(uint32_t tex_id, int *fd);
+VIRGL_EXPORT int vircl_renderer_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, int *offset);
 
 /*
  * These are only here for compatibility-reasons. In the future, use the flags
@@ -190,28 +190,28 @@ struct virgl_renderer_supported_structures {
 /* This typedef must be kept in sync with vrend_debug.h */
 typedef void (*virgl_debug_callback_type)(const char *fmt, va_list ap);
 
-VIRGL_EXPORT int virgl_renderer_resource_create(struct virgl_renderer_resource_create_args *args, struct iovec *iov, uint32_t num_iovs);
-VIRGL_EXPORT int virgl_renderer_resource_import_eglimage(struct virgl_renderer_resource_create_args *args, void *image);
-VIRGL_EXPORT void virgl_renderer_resource_unref(uint32_t res_handle);
+VIRGL_EXPORT int vircl_renderer_resource_create(struct virgl_renderer_resource_create_args *args, struct iovec *iov, uint32_t num_iovs);
+VIRGL_EXPORT int vircl_renderer_resource_import_eglimage(struct virgl_renderer_resource_create_args *args, void *image);
+VIRGL_EXPORT void vircl_renderer_resource_unref(uint32_t res_handle);
 
-VIRGL_EXPORT void virgl_renderer_resource_set_priv(uint32_t res_handle, void *priv);
-VIRGL_EXPORT void *virgl_renderer_resource_get_priv(uint32_t res_handle);
+VIRGL_EXPORT void vircl_renderer_resource_set_priv(uint32_t res_handle, void *priv);
+VIRGL_EXPORT void *vircl_renderer_resource_get_priv(uint32_t res_handle);
 
-VIRGL_EXPORT int virgl_renderer_context_create(uint32_t handle, uint32_t nlen, const char *name);
-VIRGL_EXPORT void virgl_renderer_context_destroy(uint32_t handle);
+VIRGL_EXPORT int vircl_renderer_context_create(uint32_t handle, uint32_t nlen, const char *name);
+VIRGL_EXPORT void vircl_renderer_context_destroy(uint32_t handle);
 
-VIRGL_EXPORT int virgl_renderer_submit_cmd(void *buffer,
+VIRGL_EXPORT int vircl_renderer_submit_cmd(void *buffer,
                                            int ctx_id,
                                            int ndw);
 
-VIRGL_EXPORT int virgl_renderer_transfer_read_iov(uint32_t handle, uint32_t ctx_id,
+VIRGL_EXPORT int vircl_renderer_transfer_read_iov(uint32_t handle, uint32_t ctx_id,
                                                   uint32_t level, uint32_t stride,
                                                   uint32_t layer_stride,
                                                   struct virgl_box *box,
                                                   uint64_t offset, struct iovec *iov,
                                                   int iovec_cnt);
 
-VIRGL_EXPORT int virgl_renderer_transfer_write_iov(uint32_t handle,
+VIRGL_EXPORT int vircl_renderer_transfer_write_iov(uint32_t handle,
                                                    uint32_t ctx_id,
                                                    int level,
                                                    uint32_t stride,
@@ -221,22 +221,22 @@ VIRGL_EXPORT int virgl_renderer_transfer_write_iov(uint32_t handle,
                                                    struct iovec *iovec,
                                                    unsigned int iovec_cnt);
 
-VIRGL_EXPORT void virgl_renderer_get_cap_set(uint32_t set, uint32_t *max_ver,
+VIRGL_EXPORT void vircl_renderer_get_cap_set(uint32_t set, uint32_t *max_ver,
                                              uint32_t *max_size);
 
-VIRGL_EXPORT void virgl_renderer_fill_caps(uint32_t set, uint32_t version,
+VIRGL_EXPORT void vircl_renderer_fill_caps(uint32_t set, uint32_t version,
                                            void *caps);
 
-VIRGL_EXPORT int virgl_renderer_resource_attach_iov(int res_handle, struct iovec *iov,
+VIRGL_EXPORT int vircl_renderer_resource_attach_iov(int res_handle, struct iovec *iov,
                                                     int num_iovs);
-VIRGL_EXPORT void virgl_renderer_resource_detach_iov(int res_handle, struct iovec **iov, int *num_iovs);
+VIRGL_EXPORT void vircl_renderer_resource_detach_iov(int res_handle, struct iovec **iov, int *num_iovs);
 
-VIRGL_EXPORT int virgl_renderer_create_fence(int client_fence_id, uint32_t ctx_id);
+VIRGL_EXPORT int vircl_renderer_create_fence(int client_fence_id, uint32_t ctx_id);
 
-VIRGL_EXPORT void virgl_renderer_force_ctx_0(void);
+VIRGL_EXPORT void vircl_renderer_force_ctx_0(void);
 
-VIRGL_EXPORT void virgl_renderer_ctx_attach_resource(int ctx_id, int res_handle);
-VIRGL_EXPORT void virgl_renderer_ctx_detach_resource(int ctx_id, int res_handle);
+VIRGL_EXPORT void vircl_renderer_ctx_attach_resource(int ctx_id, int res_handle);
+VIRGL_EXPORT void vircl_renderer_ctx_detach_resource(int ctx_id, int res_handle);
 
 VIRGL_EXPORT virgl_debug_callback_type virgl_set_debug_callback(virgl_debug_callback_type cb);
 
@@ -254,17 +254,17 @@ struct virgl_renderer_resource_info {
    int drm_fourcc;
 };
 
-VIRGL_EXPORT int virgl_renderer_resource_get_info(int res_handle,
+VIRGL_EXPORT int vircl_renderer_resource_get_info(int res_handle,
                                                   struct virgl_renderer_resource_info *info);
 
-VIRGL_EXPORT void virgl_renderer_cleanup(void *cookie);
+VIRGL_EXPORT void vircl_renderer_cleanup(void *cookie);
 
 /* reset the rendererer - destroy all contexts and resource */
-VIRGL_EXPORT void virgl_renderer_reset(void);
+VIRGL_EXPORT void vircl_renderer_reset(void);
 
-VIRGL_EXPORT int virgl_renderer_get_poll_fd(void);
+VIRGL_EXPORT int vircl_renderer_get_poll_fd(void);
 
-VIRGL_EXPORT int virgl_renderer_execute(void *execute_args, uint32_t execute_size);
+VIRGL_EXPORT int vircl_renderer_execute(void *execute_args, uint32_t execute_size);
 
 /*
  * These are unstable APIs for development only. Use these for development/testing purposes
@@ -274,7 +274,7 @@ VIRGL_EXPORT int virgl_renderer_execute(void *execute_args, uint32_t execute_siz
 
 #define VIRGL_RENDERER_CONTEXT_FLAG_CAPSET_ID_MASK 0xff
 
-VIRGL_EXPORT int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
+VIRGL_EXPORT int vircl_renderer_context_create_with_flags(uint32_t ctx_id,
                                                           uint32_t ctx_flags,
                                                           uint32_t nlen,
                                                           const char *name);
@@ -300,11 +300,11 @@ struct virgl_renderer_resource_create_blob_args
 };
 
 VIRGL_EXPORT int
-virgl_renderer_resource_create_blob(const struct virgl_renderer_resource_create_blob_args *args);
+vircl_renderer_resource_create_blob(const struct virgl_renderer_resource_create_blob_args *args);
 
-VIRGL_EXPORT int virgl_renderer_resource_map(uint32_t res_handle, void **map, uint64_t *out_size);
+VIRGL_EXPORT int vircl_renderer_resource_map(uint32_t res_handle, void **map, uint64_t *out_size);
 
-VIRGL_EXPORT int virgl_renderer_resource_unmap(uint32_t res_handle);
+VIRGL_EXPORT int vircl_renderer_resource_unmap(uint32_t res_handle);
 
 #define VIRGL_RENDERER_MAP_CACHE_MASK      0x0f
 #define VIRGL_RENDERER_MAP_CACHE_NONE      0x00
@@ -312,24 +312,24 @@ VIRGL_EXPORT int virgl_renderer_resource_unmap(uint32_t res_handle);
 #define VIRGL_RENDERER_MAP_CACHE_UNCACHED  0x02
 #define VIRGL_RENDERER_MAP_CACHE_WC        0x03
 
-VIRGL_EXPORT int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info);
+VIRGL_EXPORT int vircl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info);
 
 #define VIRGL_RENDERER_BLOB_FD_TYPE_DMABUF        0x0001
 #define VIRGL_RENDERER_BLOB_FD_TYPE_OPAQUE        0x0002
 
 VIRGL_EXPORT int
-virgl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd);
+vircl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd);
 
 VIRGL_EXPORT int
-virgl_renderer_export_fence(uint32_t client_fence_id, int *fd);
+vircl_renderer_export_fence(uint32_t client_fence_id, int *fd);
 
 #define VIRGL_RENDERER_FENCE_FLAG_MERGEABLE      (1 << 0)
-VIRGL_EXPORT int virgl_renderer_context_create_fence(uint32_t ctx_id,
+VIRGL_EXPORT int vircl_renderer_context_create_fence(uint32_t ctx_id,
                                                      uint32_t flags,
                                                      uint64_t queue_id,
                                                      void *fence_cookie);
-VIRGL_EXPORT void virgl_renderer_context_poll(uint32_t ctx_id); /* force fences */
-VIRGL_EXPORT int virgl_renderer_context_get_poll_fd(uint32_t ctx_id);
+VIRGL_EXPORT void vircl_renderer_context_poll(uint32_t ctx_id); /* force fences */
+VIRGL_EXPORT int vircl_renderer_context_get_poll_fd(uint32_t ctx_id);
 
 #endif /* VIRGL_RENDERER_UNSTABLE_APIS */
 

@@ -25,7 +25,7 @@
 #ifndef TESTVIRGL_H
 #define TESTVIRGL_H
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "pipe/p_state.h"
 
 #define VIRGL_MAX_CMDBUF_DWORDS (16*1024)

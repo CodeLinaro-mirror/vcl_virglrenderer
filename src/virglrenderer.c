@@ -41,7 +41,7 @@
 #include "vrend_winsys.h"
 #include "vcl/vcomp_renderer.h"
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "virglrenderer_hw.h"
 
 #include "virgl_context.h"
@@ -66,7 +66,7 @@ static struct global_state state;
 
 /* new API - just wrap internal API for now */
 
-static int virgl_renderer_resource_create_internal(struct virgl_renderer_resource_create_args *args,
+static int vircl_renderer_resource_create_internal(struct virgl_renderer_resource_create_args *args,
                                                    UNUSED struct iovec *iov, UNUSED uint32_t num_iovs,
                                                    void *image)
 {
@@ -107,20 +107,20 @@ static int virgl_renderer_resource_create_internal(struct virgl_renderer_resourc
    return 0;
 }
 
-int virgl_renderer_resource_create(struct virgl_renderer_resource_create_args *args,
+int vircl_renderer_resource_create(struct virgl_renderer_resource_create_args *args,
                                    struct iovec *iov, uint32_t num_iovs)
 {
    TRACE_FUNC();
-   return virgl_renderer_resource_create_internal(args, iov, num_iovs, NULL);
+   return vircl_renderer_resource_create_internal(args, iov, num_iovs, NULL);
 }
 
-int virgl_renderer_resource_import_eglimage(struct virgl_renderer_resource_create_args *args, void *image)
+int vircl_renderer_resource_import_eglimage(struct virgl_renderer_resource_create_args *args, void *image)
 {
    TRACE_FUNC();
-   return virgl_renderer_resource_create_internal(args, NULL, 0, image);
+   return vircl_renderer_resource_create_internal(args, NULL, 0, image);
 }
 
-void virgl_renderer_resource_set_priv(uint32_t res_handle, void *priv)
+void vircl_renderer_resource_set_priv(uint32_t res_handle, void *priv)
 {
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
    if (!res)
@@ -129,7 +129,7 @@ void virgl_renderer_resource_set_priv(uint32_t res_handle, void *priv)
    res->private_data = priv;
 }
 
-void *virgl_renderer_resource_get_priv(uint32_t res_handle)
+void *vircl_renderer_resource_get_priv(uint32_t res_handle)
 {
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
    if (!res)
@@ -145,7 +145,7 @@ static bool detach_resource(struct virgl_context *ctx, void *data)
    return true;
 }
 
-void virgl_renderer_resource_unref(uint32_t res_handle)
+void vircl_renderer_resource_unref(uint32_t res_handle)
 {
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
    struct virgl_context_foreach_args args;
@@ -160,7 +160,7 @@ void virgl_renderer_resource_unref(uint32_t res_handle)
    virgl_resource_remove(res->res_id);
 }
 
-void virgl_renderer_fill_caps(uint32_t set, uint32_t version,
+void vircl_renderer_fill_caps(uint32_t set, uint32_t version,
                               void *caps)
 {
    switch (set) {
@@ -192,7 +192,7 @@ static void per_context_fence_retire(struct virgl_context *ctx,
                                   fence_cookie);
 }
 
-int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
+int vircl_renderer_context_create_with_flags(uint32_t ctx_id,
                                              uint32_t ctx_flags,
                                              uint32_t nlen,
                                              const char *name)
@@ -253,21 +253,21 @@ int virgl_renderer_context_create_with_flags(uint32_t ctx_id,
    return 0;
 }
 
-int virgl_renderer_context_create(uint32_t handle, uint32_t nlen, const char *name)
+int vircl_renderer_context_create(uint32_t handle, uint32_t nlen, const char *name)
 {
-   return virgl_renderer_context_create_with_flags(handle,
+   return vircl_renderer_context_create_with_flags(handle,
                                                    VIRGL_RENDERER_CAPSET_VIRGL2,
                                                    nlen,
                                                    name);
 }
 
-void virgl_renderer_context_destroy(uint32_t handle)
+void vircl_renderer_context_destroy(uint32_t handle)
 {
    TRACE_FUNC();
    virgl_context_remove(handle);
 }
 
-int virgl_renderer_submit_cmd(void *buffer,
+int vircl_renderer_submit_cmd(void *buffer,
                               int ctx_id,
                               int ndw)
 {
@@ -282,7 +282,7 @@ int virgl_renderer_submit_cmd(void *buffer,
    return ctx->submit_cmd(ctx, buffer, ndw * sizeof(uint32_t));
 }
 
-int virgl_renderer_transfer_write_iov(uint32_t handle,
+int vircl_renderer_transfer_write_iov(uint32_t handle,
                                       uint32_t ctx_id,
                                       int level,
                                       uint32_t stride,
@@ -325,7 +325,7 @@ int virgl_renderer_transfer_write_iov(uint32_t handle,
    }
 }
 
-int virgl_renderer_transfer_read_iov(uint32_t handle, uint32_t ctx_id,
+int vircl_renderer_transfer_read_iov(uint32_t handle, uint32_t ctx_id,
                                      uint32_t level, uint32_t stride,
                                      uint32_t layer_stride,
                                      struct virgl_box *box,
@@ -364,7 +364,7 @@ int virgl_renderer_transfer_read_iov(uint32_t handle, uint32_t ctx_id,
    }
 }
 
-int virgl_renderer_resource_attach_iov(int res_handle, struct iovec *iov,
+int vircl_renderer_resource_attach_iov(int res_handle, struct iovec *iov,
                                        int num_iovs)
 {
    TRACE_FUNC();
@@ -375,7 +375,7 @@ int virgl_renderer_resource_attach_iov(int res_handle, struct iovec *iov,
    return virgl_resource_attach_iov(res, iov, num_iovs);
 }
 
-void virgl_renderer_resource_detach_iov(int res_handle, struct iovec **iov_p, int *num_iovs_p)
+void vircl_renderer_resource_detach_iov(int res_handle, struct iovec **iov_p, int *num_iovs_p)
 {
    TRACE_FUNC();
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
@@ -390,7 +390,7 @@ void virgl_renderer_resource_detach_iov(int res_handle, struct iovec **iov_p, in
    virgl_resource_detach_iov(res);
 }
 
-int virgl_renderer_create_fence(int client_fence_id, UNUSED uint32_t ctx_id)
+int vircl_renderer_create_fence(int client_fence_id, UNUSED uint32_t ctx_id)
 {
    TRACE_FUNC();
    const uint32_t fence_id = (uint32_t)client_fence_id;
@@ -399,7 +399,7 @@ int virgl_renderer_create_fence(int client_fence_id, UNUSED uint32_t ctx_id)
    return EINVAL;
 }
 
-int virgl_renderer_context_create_fence(uint32_t ctx_id,
+int vircl_renderer_context_create_fence(uint32_t ctx_id,
                                         uint32_t flags,
                                         uint64_t queue_id,
                                         void *fence_cookie)
@@ -412,7 +412,7 @@ int virgl_renderer_context_create_fence(uint32_t ctx_id,
    return ctx->submit_fence(ctx, flags, queue_id, fence_cookie);
 }
 
-void virgl_renderer_context_poll(uint32_t ctx_id)
+void vircl_renderer_context_poll(uint32_t ctx_id)
 {
    struct virgl_context *ctx = virgl_context_lookup(ctx_id);
    if (!ctx)
@@ -421,7 +421,7 @@ void virgl_renderer_context_poll(uint32_t ctx_id)
    ctx->retire_fences(ctx);
 }
 
-int virgl_renderer_context_get_poll_fd(uint32_t ctx_id)
+int vircl_renderer_context_get_poll_fd(uint32_t ctx_id)
 {
    struct virgl_context *ctx = virgl_context_lookup(ctx_id);
    if (!ctx)
@@ -430,14 +430,14 @@ int virgl_renderer_context_get_poll_fd(uint32_t ctx_id)
    return ctx->get_fencing_fd(ctx);
 }
 
-void virgl_renderer_force_ctx_0(void)
+void vircl_renderer_force_ctx_0(void)
 {
    TRACE_FUNC();
    if (state.vrend_initialized)
       vrend_renderer_force_ctx_0();
 }
 
-void virgl_renderer_ctx_attach_resource(int ctx_id, int res_handle)
+void vircl_renderer_ctx_attach_resource(int ctx_id, int res_handle)
 {
    TRACE_FUNC();
    struct virgl_context *ctx = virgl_context_lookup(ctx_id);
@@ -447,7 +447,7 @@ void virgl_renderer_ctx_attach_resource(int ctx_id, int res_handle)
    ctx->attach_resource(ctx, res);
 }
 
-void virgl_renderer_ctx_detach_resource(int ctx_id, int res_handle)
+void vircl_renderer_ctx_detach_resource(int ctx_id, int res_handle)
 {
    TRACE_FUNC();
    struct virgl_context *ctx = virgl_context_lookup(ctx_id);
@@ -457,7 +457,7 @@ void virgl_renderer_ctx_detach_resource(int ctx_id, int res_handle)
    ctx->detach_resource(ctx, res);
 }
 
-int virgl_renderer_resource_get_info(int res_handle,
+int vircl_renderer_resource_get_info(int res_handle,
                                      struct virgl_renderer_resource_info *info)
 {
    TRACE_FUNC();
@@ -481,7 +481,7 @@ int virgl_renderer_resource_get_info(int res_handle,
    return 0;
 }
 
-void virgl_renderer_get_cap_set(uint32_t cap_set, uint32_t *max_ver,
+void vircl_renderer_get_cap_set(uint32_t cap_set, uint32_t *max_ver,
                                 uint32_t *max_size)
 {
    TRACE_FUNC();
@@ -507,7 +507,7 @@ void virgl_renderer_get_cap_set(uint32_t cap_set, uint32_t *max_ver,
    }
 }
 
-void virgl_renderer_get_rect(int resource_id, struct iovec *iov, unsigned int num_iovs,
+void vircl_renderer_get_rect(int resource_id, struct iovec *iov, unsigned int num_iovs,
                              uint32_t offset, int x, int y, int width, int height)
 {
    TRACE_FUNC();
@@ -566,7 +566,7 @@ static const struct vrend_if_cbs vrend_cbs = {
    make_current,
 };
 
-void *virgl_renderer_get_cursor_data(uint32_t resource_id, uint32_t *width, uint32_t *height)
+void *vircl_renderer_get_cursor_data(uint32_t resource_id, uint32_t *width, uint32_t *height)
 {
    struct virgl_resource *res = virgl_resource_lookup(resource_id);
    if (!res || !res->pipe_resource)
@@ -578,14 +578,14 @@ void *virgl_renderer_get_cursor_data(uint32_t resource_id, uint32_t *width, uint
                                              height);
 }
 
-void virgl_renderer_poll(void)
+void vircl_renderer_poll(void)
 {
    TRACE_FUNC();
    if (state.vrend_initialized)
       vrend_renderer_check_fences();
 }
 
-void virgl_renderer_cleanup(UNUSED void *cookie)
+void vircl_renderer_cleanup(UNUSED void *cookie)
 {
    TRACE_FUNC();
    if (state.vrend_initialized)
@@ -612,7 +612,7 @@ void virgl_renderer_cleanup(UNUSED void *cookie)
    memset(&state, 0, sizeof(state));
 }
 
-int virgl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks *cbs)
+int vircl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks *cbs)
 {
    TRACE_INIT();
    TRACE_FUNC();
@@ -715,11 +715,11 @@ int virgl_renderer_init(void *cookie, int flags, struct virgl_renderer_callbacks
    return 0;
 
 fail:
-   virgl_renderer_cleanup(NULL);
+   vircl_renderer_cleanup(NULL);
    return ret;
 }
 
-int virgl_renderer_get_fd_for_texture(uint32_t tex_id, int *fd)
+int vircl_renderer_get_fd_for_texture(uint32_t tex_id, int *fd)
 {
    TRACE_FUNC();
    if (state.winsys_initialized)
@@ -727,7 +727,7 @@ int virgl_renderer_get_fd_for_texture(uint32_t tex_id, int *fd)
    return -1;
 }
 
-int virgl_renderer_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, int *offset)
+int vircl_renderer_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, int *offset)
 {
    TRACE_FUNC();
    if (state.winsys_initialized)
@@ -735,7 +735,7 @@ int virgl_renderer_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, in
    return -1;
 }
 
-void virgl_renderer_reset(void)
+void vircl_renderer_reset(void)
 {
    TRACE_FUNC();
    if (state.vrend_initialized)
@@ -757,7 +757,7 @@ void virgl_renderer_reset(void)
       vrend_renderer_reset();
 }
 
-int virgl_renderer_get_poll_fd(void)
+int vircl_renderer_get_poll_fd(void)
 {
    TRACE_FUNC();
    if (state.vrend_initialized)
@@ -771,7 +771,7 @@ virgl_debug_callback_type virgl_set_debug_callback(virgl_debug_callback_type cb)
    return vrend_set_debug_callback(cb);
 }
 
-static int virgl_renderer_export_query(void *execute_args, uint32_t execute_size)
+static int vircl_renderer_export_query(void *execute_args, uint32_t execute_size)
 {
    struct virgl_resource *res;
    struct virgl_renderer_export_query *export_query = execute_args;
@@ -806,7 +806,7 @@ static int virgl_renderer_export_query(void *execute_args, uint32_t execute_size
    }
 }
 
-static int virgl_renderer_supported_structures(void *execute_args, uint32_t execute_size)
+static int vircl_renderer_supported_structures(void *execute_args, uint32_t execute_size)
 {
    struct virgl_renderer_supported_structures *supported_structures = execute_args;
    if (execute_size != sizeof(struct virgl_renderer_supported_structures))
@@ -826,7 +826,7 @@ static int virgl_renderer_supported_structures(void *execute_args, uint32_t exec
    return 0;
 }
 
-int virgl_renderer_execute(void *execute_args, uint32_t execute_size)
+int vircl_renderer_execute(void *execute_args, uint32_t execute_size)
 {
    TRACE_FUNC();
    struct virgl_renderer_hdr *hdr = execute_args;
@@ -835,15 +835,15 @@ int virgl_renderer_execute(void *execute_args, uint32_t execute_size)
 
    switch (hdr->stype) {
       case VIRGL_RENDERER_STRUCTURE_TYPE_SUPPORTED_STRUCTURES:
-         return virgl_renderer_supported_structures(execute_args, execute_size);
+         return vircl_renderer_supported_structures(execute_args, execute_size);
       case VIRGL_RENDERER_STRUCTURE_TYPE_EXPORT_QUERY:
-         return virgl_renderer_export_query(execute_args, execute_size);
+         return vircl_renderer_export_query(execute_args, execute_size);
       default:
          return -EINVAL;
    }
 }
 
-int virgl_renderer_resource_create_blob(const struct virgl_renderer_resource_create_blob_args *args)
+int vircl_renderer_resource_create_blob(const struct virgl_renderer_resource_create_blob_args *args)
 {
    TRACE_FUNC();
    struct virgl_resource *res;
@@ -933,7 +933,7 @@ int virgl_renderer_resource_create_blob(const struct virgl_renderer_resource_cre
    return 0;
 }
 
-int virgl_renderer_resource_map(uint32_t res_handle, void **map, uint64_t *out_size)
+int vircl_renderer_resource_map(uint32_t res_handle, void **map, uint64_t *out_size)
 {
    TRACE_FUNC();
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
@@ -943,7 +943,7 @@ int virgl_renderer_resource_map(uint32_t res_handle, void **map, uint64_t *out_s
    return vrend_renderer_resource_map(res->pipe_resource, map, out_size);
 }
 
-int virgl_renderer_resource_unmap(uint32_t res_handle)
+int vircl_renderer_resource_unmap(uint32_t res_handle)
 {
    TRACE_FUNC();
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
@@ -953,7 +953,7 @@ int virgl_renderer_resource_unmap(uint32_t res_handle)
    return vrend_renderer_resource_unmap(res->pipe_resource);
 }
 
-int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info)
+int vircl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info)
 {
    TRACE_FUNC();
    struct virgl_resource *res = virgl_resource_lookup(res_handle);
@@ -969,7 +969,7 @@ int virgl_renderer_resource_get_map_info(uint32_t res_handle, uint32_t *map_info
 }
 
 int
-virgl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd)
+vircl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd)
 {
    struct virgl_resource *res = virgl_resource_lookup(res_id);
    if (!res)
@@ -990,7 +990,7 @@ virgl_renderer_resource_export_blob(uint32_t res_id, uint32_t *fd_type, int *fd)
 }
 
 int
-virgl_renderer_export_fence(uint32_t client_fence_id, int *fd)
+vircl_renderer_export_fence(uint32_t client_fence_id, int *fd)
 {
    TRACE_FUNC();
    return vrend_renderer_export_ctx0_fence(client_fence_id, fd);

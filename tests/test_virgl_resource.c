@@ -31,7 +31,7 @@
 #include <check.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <virglrenderer.h>
+#include <virclrenderer.h>
 #include "virgl_hw.h"
 #include "testvirgl.h"
 
@@ -267,7 +267,7 @@ START_TEST(virgl_res_tests)
     return;
   }
 
-  ret = virgl_renderer_resource_create(&testlist[_i].args, NULL, 0);
+  ret = vircl_renderer_resource_create(&testlist[_i].args, NULL, 0);
   ck_assert_int_eq(ret, testlist[_i].retval);
 
   testvirgl_fini_single_ctx();
@@ -280,7 +280,7 @@ START_TEST(cubemaparray_res_tests)
   ret = testvirgl_init_single_ctx();
   ck_assert_int_eq(ret, 0);
 
-  ret = virgl_renderer_resource_create(&cubemaparray_testlist[_i].args, NULL, 0);
+  ret = vircl_renderer_resource_create(&cubemaparray_testlist[_i].args, NULL, 0);
   ck_assert_int_eq(ret, cubemaparray_testlist[_i].retval);
 
   testvirgl_fini_single_ctx();
@@ -293,12 +293,12 @@ START_TEST(private_ptr)
   ret = testvirgl_init_single_ctx();
   ck_assert_int_eq(ret, 0);
   struct virgl_renderer_resource_create_args args = { 1, PIPE_BUFFER, PIPE_FORMAT_R8_UNORM, 0, 50, 1, 1, 1, 0, 0, 0 };
-  ret = virgl_renderer_resource_create(&args, NULL, 0);
+  ret = vircl_renderer_resource_create(&args, NULL, 0);
   ck_assert_int_eq(ret, 0);
 
   void *init_priv = (void*)0xabab;
-  virgl_renderer_resource_set_priv(1, init_priv);
-  void *priv = virgl_renderer_resource_get_priv(1);
+  vircl_renderer_resource_set_priv(1, init_priv);
+  void *priv = vircl_renderer_resource_get_priv(1);
   ck_assert_int_eq((unsigned long)priv, 0xabab);
   testvirgl_fini_single_ctx();
 }

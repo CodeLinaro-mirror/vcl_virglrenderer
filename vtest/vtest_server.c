@@ -45,7 +45,7 @@
 #include "util/u_memory.h"
 #include "vtest.h"
 #include "vtest_protocol.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif

@@ -53,7 +53,7 @@
 
 #include "virgl_hw.h"
 #include "virgl_resource.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "virglrenderer_hw.h"
 #include "virgl_protocol.h"
 

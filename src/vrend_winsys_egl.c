@@ -38,7 +38,7 @@
 
 #include "util/u_memory.h"
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "vrend_winsys.h"
 #include "vrend_winsys_egl.h"
 #include "virgl_hw.h"

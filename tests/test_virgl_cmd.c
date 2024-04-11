@@ -26,7 +26,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/uio.h>
-#include <virglrenderer.h>
+#include <virclrenderer.h>
 #include "virgl_hw.h"
 #include "pipe/p_format.h"
 #include "testvirgl_encode.h"
@@ -93,7 +93,7 @@ START_TEST(virgl_test_clear)
     ck_assert_int_eq(ret, 0);
 
     /* attach resource to context */
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
 
     /* create a surface for the resource */
     memset(&surf, 0, sizeof(surf));
@@ -118,7 +118,7 @@ START_TEST(virgl_test_clear)
     virgl_encode_clear(&ctx, PIPE_CLEAR_COLOR0, &color, 0.0, 0);
 
     /* submit the cmd stream */
-    virgl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
 
     /* read back the cleared values in the resource */
     box.x = 0;
@@ -127,7 +127,7 @@ START_TEST(virgl_test_clear)
     box.w = 5;
     box.h = 1;
     box.d = 1;
-    ret = virgl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 50, 0, &box, 0, NULL, 0);
+    ret = vircl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 50, 0, &box, 0, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     /* check the returned values */
@@ -137,7 +137,7 @@ START_TEST(virgl_test_clear)
     }
 
     /* cleanup */
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
 
     testvirgl_destroy_backed_res(&res);
 
@@ -169,8 +169,8 @@ START_TEST(virgl_test_blit_simple)
     ck_assert_int_eq(ret, 0);
 
     /* attach resource to context */
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res2.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res2.handle);
 
         /* create a surface for the resource */
     memset(&surf, 0, sizeof(surf));
@@ -207,7 +207,7 @@ START_TEST(virgl_test_blit_simple)
     virgl_encode_blit(&ctx, &res2, &res, &blit);
 
     /* submit the cmd stream */
-    virgl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
 
     /* read back the cleared values in the resource */
     box.x = 0;
@@ -216,7 +216,7 @@ START_TEST(virgl_test_blit_simple)
     box.w = 5;
     box.h = 1;
     box.d = 1;
-    ret = virgl_renderer_transfer_read_iov(res2.handle, ctx.ctx_id, 0, 50, 0, &box, 0, NULL, 0);
+    ret = vircl_renderer_transfer_read_iov(res2.handle, ctx.ctx_id, 0, 50, 0, &box, 0, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     /* check the returned values */
@@ -226,8 +226,8 @@ START_TEST(virgl_test_blit_simple)
     }
 
     /* cleanup */
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res2.handle);
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res2.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
 
     testvirgl_destroy_backed_res(&res);
     testvirgl_destroy_backed_res(&res2);
@@ -282,7 +282,7 @@ START_TEST(virgl_test_render_simple)
     ck_assert_int_eq(ret, 0);
 
     /* attach resource to context */
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
 
     /* create a surface for the resource */
     memset(&surf, 0, sizeof(surf));
@@ -320,7 +320,7 @@ START_TEST(virgl_test_render_simple)
     /* create vbo */
     ret = testvirgl_create_backed_simple_buffer(&vbo, 2, sizeof(vertices), PIPE_BIND_VERTEX_BUFFER);
     ck_assert_int_eq(ret, 0);
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
 
     /* inline write the data to it */
     box.x = 0;
@@ -433,17 +433,17 @@ START_TEST(virgl_test_render_simple)
 	virgl_encoder_draw_vbo(&ctx, &info);
     }
 
-    virgl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
 
     /* create a fence */
     testvirgl_reset_fence();
-    ret = virgl_renderer_create_fence(1, ctx.ctx_id);
+    ret = vircl_renderer_create_fence(1, ctx.ctx_id);
     ck_assert_int_eq(ret, 0);
 
     do {
 	int fence;
 
-	virgl_renderer_poll();
+	vircl_renderer_poll();
 	fence = testvirgl_get_last_fence();
 	if (fence >= 1)
 	    break;
@@ -457,7 +457,7 @@ START_TEST(virgl_test_render_simple)
     box.w = tw;
     box.h = th;
     box.d = 1;
-    ret = virgl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
+    ret = vircl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     {
@@ -474,7 +474,7 @@ START_TEST(virgl_test_render_simple)
     }
 
     /* cleanup */
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
 
     testvirgl_destroy_backed_res(&vbo);
     testvirgl_destroy_backed_res(&res);
@@ -515,7 +515,7 @@ START_TEST(virgl_test_render_geom_simple)
     ck_assert_int_eq(ret, 0);
 
     /* attach resource to context */
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
 
     /* create a surface for the resource */
     memset(&surf, 0, sizeof(surf));
@@ -553,7 +553,7 @@ START_TEST(virgl_test_render_geom_simple)
     /* create vbo */
     ret = testvirgl_create_backed_simple_buffer(&vbo, 2, sizeof(vertices), PIPE_BIND_VERTEX_BUFFER);
     ck_assert_int_eq(ret, 0);
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
 
     /* inline write the data to it */
     box.x = 0;
@@ -697,17 +697,17 @@ START_TEST(virgl_test_render_geom_simple)
 	virgl_encoder_draw_vbo(&ctx, &info);
     }
 
-    virgl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
 
     /* create a fence */
     testvirgl_reset_fence();
-    ret = virgl_renderer_create_fence(1, ctx.ctx_id);
+    ret = vircl_renderer_create_fence(1, ctx.ctx_id);
     ck_assert_int_eq(ret, 0);
 
     do {
 	int fence;
 
-	virgl_renderer_poll();
+	vircl_renderer_poll();
 	fence = testvirgl_get_last_fence();
 	if (fence >= 1)
 	    break;
@@ -721,7 +721,7 @@ START_TEST(virgl_test_render_geom_simple)
     box.w = tw;
     box.h = th;
     box.d = 1;
-    ret = virgl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
+    ret = vircl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     {
@@ -738,7 +738,7 @@ START_TEST(virgl_test_render_geom_simple)
     }
 
     /* cleanup */
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
 
     testvirgl_destroy_backed_res(&vbo);
     testvirgl_destroy_backed_res(&res);
@@ -777,7 +777,7 @@ START_TEST(virgl_test_render_xfb)
     ck_assert_int_eq(ret, 0);
 
     /* attach resource to context */
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, res.handle);
 
     /* create a surface for the resource */
     memset(&surf, 0, sizeof(surf));
@@ -815,7 +815,7 @@ START_TEST(virgl_test_render_xfb)
     /* create vbo */
     ret = testvirgl_create_backed_simple_buffer(&vbo, 2, sizeof(vertices), PIPE_BIND_VERTEX_BUFFER);
     ck_assert_int_eq(ret, 0);
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, vbo.handle);
 
     /* inline write the data to it */
     box.x = 0;
@@ -834,7 +834,7 @@ START_TEST(virgl_test_render_xfb)
     /* create stream output buffer */
     ret = testvirgl_create_backed_simple_buffer(&xfb, 3, 3*sizeof(vertices), PIPE_BIND_STREAM_OUTPUT);
     ck_assert_int_eq(ret, 0);
-    virgl_renderer_ctx_attach_resource(ctx.ctx_id, xfb.handle);
+    vircl_renderer_ctx_attach_resource(ctx.ctx_id, xfb.handle);
 
     /* set streamout target */
     xfb_handle = ctx_handle++;
@@ -942,17 +942,17 @@ START_TEST(virgl_test_render_xfb)
 	virgl_encoder_draw_vbo(&ctx, &info);
     }
 
-    virgl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
+    vircl_renderer_submit_cmd(ctx.cbuf->buf, ctx.ctx_id, ctx.cbuf->cdw);
 
     /* create a fence */
     testvirgl_reset_fence();
-    ret = virgl_renderer_create_fence(1, ctx.ctx_id);
+    ret = vircl_renderer_create_fence(1, ctx.ctx_id);
     ck_assert_int_eq(ret, 0);
 
     do {
 	int fence;
 
-	virgl_renderer_poll();
+	vircl_renderer_poll();
 	fence = testvirgl_get_last_fence();
 	if (fence >= 1)
 	    break;
@@ -966,7 +966,7 @@ START_TEST(virgl_test_render_xfb)
     box.w = tw;
     box.h = th;
     box.d = 1;
-    ret = virgl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
+    ret = vircl_renderer_transfer_read_iov(res.handle, ctx.ctx_id, 0, 0, 0, &box, 0, NULL, 0);
     ck_assert_int_eq(ret, 0);
 
     {
@@ -983,7 +983,7 @@ START_TEST(virgl_test_render_xfb)
     }
 
     /* cleanup */
-    virgl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
+    vircl_renderer_ctx_detach_resource(ctx.ctx_id, res.handle);
 
     testvirgl_destroy_backed_res(&xfb);
     testvirgl_destroy_backed_res(&vbo);

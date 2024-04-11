@@ -229,8 +229,8 @@ pkgconf_data.set('exec_prefix', '${prefix}')
 pkgconf_data.set('libdir', '${prefix}/' + get_option('libdir'))
 pkgconf_data.set('includedir', '${prefix}/' + get_option('includedir'))
 
-pkg_config = configure_file(input : 'virglrenderer.pc.in',
-                            output : 'virglrenderer.pc',
+pkg_config = configure_file(input : 'virclrenderer.pc.in',
+                            output : 'virclrenderer.pc',
                             configuration : pkgconf_data)
 
 install_data(pkg_config,

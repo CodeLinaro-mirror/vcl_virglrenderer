@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: virglrenderer
-Description: virgl GL renderer
+Name: virclrenderer
+Description: vircl CL renderer
 Version: @PACKAGE_VERSION@
 Cflags: -I${includedir} -I${includedir}/virgl
-Libs: -L${libdir} -lvirglrenderer
+Libs: -L${libdir} -lvirclrenderer

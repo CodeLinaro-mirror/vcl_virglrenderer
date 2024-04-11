@@ -23,7 +23,7 @@
 #include "virgl_protocol.h" /* for transfer_mode */
 #include "virgl_resource.h"
 #include "virgl_util.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "virglrenderer_hw.h"
 #include "vkr_cs.h"
 #include "vkr_object.h"

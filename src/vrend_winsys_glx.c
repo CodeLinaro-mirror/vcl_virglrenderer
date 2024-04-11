@@ -28,7 +28,7 @@
 #endif
 
 #include <epoxy/glx.h>
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "vrend_winsys_glx.h"
 
 struct virgl_glx {
