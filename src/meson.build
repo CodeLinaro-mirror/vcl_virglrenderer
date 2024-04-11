@@ -59,7 +59,7 @@ vrend_sources = [
 
 virglrenderer_sources = [
    'virglrenderer.c',
-   'virglrenderer.h',
+   'virclrenderer.h',
    'virglrenderer_hw.h',
 ]
 
@@ -275,7 +275,7 @@ libvirgl_dep = declare_dependency(
 )
 
 libvirglrenderer = library(
-   'virglrenderer',
+   'virclrenderer',
    virglrenderer_sources,
    include_directories: [inc_gallium, inc_configuration],
    dependencies : [virgl_depends, libvirgl_dep],
@@ -286,8 +286,8 @@ libvirglrenderer = library(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libvirglrenderer,
-   description: 'virgl GL renderer',
+pkg.generate(libvirclrenderer,
+   description: 'virgl CL renderer',
    subdirs: 'virgl'
 )
 
@@ -297,4 +297,4 @@ libvirglrenderer_dep = declare_dependency(
    dependencies : [libvirgl_dep, gallium_dep]
 )
 
-install_headers('virglrenderer.h', subdir : 'virgl')
+install_headers('virclrenderer.h', subdir : 'virgl')
