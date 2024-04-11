@@ -37,7 +37,7 @@
 #include <epoxy/egl.h>
 
 #include "util/macros.h"
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
@@ -175,18 +175,18 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
    // driver with each eglInitialize()/eglTerminate() if CLEANUP_EACH_INPUT
    // is set.
 
-   ret = virgl_renderer_init(&cookie, 0, &fuzzer_cbs);
+   ret = vircl_renderer_init(&cookie, 0, &fuzzer_cbs);
    assert(!ret);
 
    const char *name = "fuzzctx";
-   ret = virgl_renderer_context_create(ctx_id, strlen(name), name);
+   ret = vircl_renderer_context_create(ctx_id, strlen(name), name);
    assert(!ret);
 
-   virgl_renderer_submit_cmd((void *) data, ctx_id, size / sizeof(uint32_t));
+   vircl_renderer_submit_cmd((void *) data, ctx_id, size / sizeof(uint32_t));
 
-   virgl_renderer_context_destroy(ctx_id);
+   vircl_renderer_context_destroy(ctx_id);
 
-   virgl_renderer_cleanup(&cookie);
+   vircl_renderer_cleanup(&cookie);
 
 #ifdef CLEANUP_EACH_INPUT
    // The following cleans up between each input which is a lot slower.

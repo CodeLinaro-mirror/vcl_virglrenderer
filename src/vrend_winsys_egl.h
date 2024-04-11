@@ -24,7 +24,7 @@
 #ifndef VIRGL_EGL_H
 #define VIRGL_EGL_H
 
-#include "virglrenderer.h"
+#include "virclrenderer.h"
 #include "vrend_renderer.h"
 
 #include <epoxy/egl.h>
