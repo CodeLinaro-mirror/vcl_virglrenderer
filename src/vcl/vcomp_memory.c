@@ -771,7 +771,7 @@ void vcomp_context_init_memory_dispatch(struct vcomp_context *vctx)
 
 cl_int vcomp_memory_destroy(struct vcomp_context *vctx, struct vcomp_memory *memory)
 {
-   _mesa_hash_table_u64_destroy(memory->map_table, NULL);
+   _mesa_hash_table_u64_destroy(memory->map_table);
    cl_int ret = clReleaseMemObject(memory->base.handle.memory);
    vcomp_context_remove_object(vctx, &memory->base);
    return ret;
