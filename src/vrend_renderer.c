@@ -1649,7 +1649,7 @@ static void bind_virgl_block_loc(struct vrend_linked_shader_program *sprog,
                                  int virgl_block_ubo_id)
 {
    sprog->separate_virgl_block_id[shader_type] =
-	 vrend_get_uniform_block_index(sprog, "VirglBlock", shader_type);
+	 vrend_get_uniform_block_index(sprog, (char *)"VirglBlock", shader_type);
 
    if (sprog->separate_virgl_block_id[shader_type] != GL_INVALID_INDEX) {
       bool created_virgl_block_buffer = false;
