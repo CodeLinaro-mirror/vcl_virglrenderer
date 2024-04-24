@@ -183,7 +183,7 @@ else
 endif
 
 if get_option('buildtype') == 'debug'
-   add_global_arguments('-DDEBUG=1', language : 'c')
+   add_project_arguments('-DDEBUG=1', language : 'c')
 endif
 
 platforms = get_option('platforms')
@@ -297,7 +297,7 @@ configure_file(input : 'config.h.meson',
                output : 'config.h',
                configuration : conf_data)
 
-add_project_arguments('-imacros', meson.build_root() / 'config.h', language : 'c')
+add_project_arguments('-imacros', meson.current_build_dir() / 'config.h', language : 'c')
 add_project_arguments('-DHAVE_CONFIG_H=1', language : 'c')
 
 inc_configuration = include_directories(['.', 'src'])
