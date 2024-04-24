@@ -192,38 +192,38 @@ static enum tgsi_return_type tgsi_ret_for_format(enum virgl_formats format)
 static void blit_get_swizzle(int tgsi_tex_target, unsigned flags,
                              struct blit_swizzle_and_type *retval)
 {
-   retval->swizzle = "";
-   retval->type = "";
+   retval->swizzle = (char *)"";
+   retval->type = (char *)"";
    retval->is_array = false;
    switch (tgsi_tex_target) {
    case TGSI_TEXTURE_1D:
       if ((flags & (BLIT_USE_GLES | BLIT_USE_DEPTH)) == (BLIT_USE_GLES | BLIT_USE_DEPTH)) {
-         retval->swizzle = ".xy";
+         retval->swizzle = (char *)".xy";
          break;
       }
       /* fallthrough */
    case TGSI_TEXTURE_BUFFER:
-      retval->swizzle = ".x";
+      retval->swizzle = (char *)".x";
       break;
    case TGSI_TEXTURE_2D_MSAA:
       if (flags & BLIT_USE_MSAA) {
-         retval->type = "ivec2";
+         retval->type =  (char *)"ivec2";
       }
-      retval->swizzle = ".xy";
+      retval->swizzle =  (char *)".xy";
       break;
    case TGSI_TEXTURE_1D_ARRAY:
       if (flags & (BLIT_USE_GLES)) {
-         retval->swizzle = ".xyz";
+         retval->swizzle = (char *)".xyz";
          break;
       }
       /* fallthrough */
    case TGSI_TEXTURE_2D:
    case TGSI_TEXTURE_RECT:
-      retval->swizzle = ".xy";
+      retval->swizzle = (char *)".xy";
       break;
    case TGSI_TEXTURE_2D_ARRAY_MSAA:
       if (flags & BLIT_USE_MSAA) {
-         retval->type = "ivec3";
+         retval->type = (char *)"ivec3";
          retval->is_array = true;
       }
       /* fallthrough */
@@ -234,19 +234,19 @@ static void blit_get_swizzle(int tgsi_tex_target, unsigned flags,
    case TGSI_TEXTURE_3D:
    case TGSI_TEXTURE_CUBE:
    case TGSI_TEXTURE_2D_ARRAY:
-      retval->swizzle = ".xyz";
+      retval->swizzle = (char *)".xyz";
       break;
    case TGSI_TEXTURE_SHADOWCUBE:
    case TGSI_TEXTURE_SHADOW2D_ARRAY:
    case TGSI_TEXTURE_SHADOWCUBE_ARRAY:
    case TGSI_TEXTURE_CUBE_ARRAY:
-      retval->swizzle = "";
+      retval->swizzle = (char *)"";
       break;
    default:
       if (flags & BLIT_USE_MSAA) {
          break;
       }
-      retval->swizzle = ".xy";
+      retval->swizzle = (char *)".xy";
       break;
    }
 }
