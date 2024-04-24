@@ -295,7 +295,7 @@ pkg.generate(libvirclrenderer,
    subdirs: 'virgl'
 )
 
-libvirglrenderer_dep = declare_dependency(
+libvirclrenderer_dep = declare_dependency(
    link_with: libvirclrenderer,
    include_directories: libvirgl_inc,
    dependencies : [libvirgl_dep, gallium_dep]

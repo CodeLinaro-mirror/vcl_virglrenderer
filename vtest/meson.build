@@ -36,7 +36,7 @@ virgl_test_server_sources = [
 virgl_test_server = executable(
    'virgl_test_server',
    virgl_test_server_sources,
-   dependencies : [libvirglrenderer_dep, gallium_dep],
+   dependencies : [libvirclrenderer_dep, gallium_dep],
    install : true
 )
 
