@@ -2297,7 +2297,7 @@ static void emit_so_movs(const struct dump_ctx *ctx,
             } else if (output->name == TGSI_SEMANTIC_PATCH && ctx->patch_ios.output_range.used) {
                used_output_io = &ctx->patch_ios.output_range.io;
             }
-            get_so_name(ctx, true, used_output_io, ctx->so->output[i].register_index, out_var, "");
+            get_so_name(ctx, true, used_output_io, ctx->so->output[i].register_index, out_var, (char *)"");
             ctx->so_names[i] = strdup(out_var);
          }
       } else {
@@ -5304,13 +5304,13 @@ add_missing_inputs(const struct dump_ctx *ctx, struct vrend_shader_io *inputs,
 
    const char *prefix = get_stage_input_name_prefix(ctx, ctx->prog_type);
    add_missing_semantic_inputs(inputs, &num_inputs, &next_location,
-                               generics_missing, prefix, "_g",
+                               generics_missing, prefix, (char *)"_g",
                                TGSI_SEMANTIC_GENERIC, ctx->key);
    add_missing_semantic_inputs(inputs, &num_inputs, &next_location,
-                               texcoord_missing, prefix, "_t",
+                               texcoord_missing, prefix, (char *)"_t",
                                TGSI_SEMANTIC_TEXCOORD, ctx->key);
    add_missing_semantic_inputs(inputs, &num_inputs, &next_location,
-                               patches_missing, "patch", "",
+                               patches_missing, "patch", (char *)"",
                                TGSI_SEMANTIC_PATCH, ctx->key);
 
    qsort(inputs, num_inputs, sizeof(struct vrend_shader_io),
@@ -6534,7 +6534,7 @@ static int emit_ios_common(const struct dump_ctx *ctx,
       while (mask) {
          uint32_t id = u_bit_scan(&mask);
          enum vrend_type_qualifier type = (ctx->ssbo_integer_mask & (1 << id)) ? INT : UINT;
-         char *coherent = ctx->ssbo_memory_qualifier[id] == TGSI_MEMORY_COHERENT ? "coherent" : "";
+         const char *coherent = ctx->ssbo_memory_qualifier[id] == TGSI_MEMORY_COHERENT ? "coherent" : "";
          emit_hdrf(glsl_strbufs, "layout (binding = %d, std430) %s buffer %sssbo%d { %s %sssbocontents%d[]; };\n", id, coherent, sname, id,
                   get_string(type), sname, id);
       }
