@@ -88,7 +88,12 @@ static void initialize_environment()
 {
    setenv("LIBGL_ALWAYS_SOFTWARE", "true", 0);
    setenv("GALLIUM_DRIVER", "softpipe", 0);
+
+#ifdef ENABLE_GBM
    test_egl = virgl_egl_init(NULL, true, true);
+#else
+   test_egl = virgl_egl_init(EGL_DEFAULT_DISPLAY, true, true);
+#endif
    assert(test_egl);
 
    vircl_renderer_init(&cookie, VIRGL_RENDERER_USE_GLES|
