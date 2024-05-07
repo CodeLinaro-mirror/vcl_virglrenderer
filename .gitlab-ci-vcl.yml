@@ -61,15 +61,9 @@ build/linux:
   tags:
     - linux
 
-build/mac:
-  extends:
-    - .build
-  tags:
-    - mac
-
 .deploy:
   stage: deploy
-  needs: ["build/linux", "build/mac"]
+  needs: ["build/linux"]
   trigger:
     project: qqvp/vcl/qemu
     strategy: depend
