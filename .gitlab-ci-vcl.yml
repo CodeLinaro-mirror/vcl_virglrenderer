@@ -1,7 +1,7 @@
 image: $CI_REGISTRY/qqvp/vcl/containers/kvm-dev-ubuntu:latest
 
 variables:
-  VCL_PROTOCOL_URL: $CI_SERVER_URL/$CI_PROJECT_NAMESPACE/venus-protocol
+  VCL_PROTOCOL_URL: $CI_SERVER_URL/$CI_PROJECT_NAMESPACE/vcl-protocol
   VCL_PROTOCOL_BRANCH: main
 
 stages:
@@ -14,7 +14,7 @@ fetch:
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
   needs:
-    - project: qqvp/vcl/venus-protocol
+    - project: qqvp/vcl/vcl-protocol
       job: build
       ref: $UPSTREAM_REF
       artifacts: true
