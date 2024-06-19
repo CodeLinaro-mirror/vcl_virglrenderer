@@ -45,7 +45,7 @@ fetch:
       fi
     - mkdir -p src/vcl/vcl-protocol
     # This job expects vcl-protocol renderer code to be already available in build
-    - mv build/vcl_protocol_renderer_*.h src/vcl/vcl-protocol
+    - mv build/debug/vcl_protocol_renderer_*.h src/vcl/vcl-protocol
     - meson setup build/no-vcl --buildtype release -Dplatforms=auto
     - ninja -C build/no-vcl
     - meson setup build/release --prefix `pwd`/build/install --buildtype release -Dplatforms=auto -Dvcl=true
