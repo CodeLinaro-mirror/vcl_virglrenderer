@@ -1,4 +1,4 @@
-image: $CI_REGISTRY/qqvp/vcl/containers/kvm-dev-ubuntu:latest
+image: $CI_REGISTRY/qqvp/vcl/containers/vcl-dev-alpine:latest
 
 variables:
   VCL_PROTOCOL_URL: $CI_SERVER_URL/$CI_PROJECT_NAMESPACE/vcl-protocol
