@@ -29,7 +29,7 @@ vcomp_context_create(int id, uint32_t nlen, const char *debug_name);
 static inline int
 vcomp_renderer_init(void)
 {
-   virgl_error("OpenCL support was not enabled in virglrenderer\n");
+   virgl_log("OpenCL support was not enabled in virglrenderer\n");
    return -1;
 }
 
