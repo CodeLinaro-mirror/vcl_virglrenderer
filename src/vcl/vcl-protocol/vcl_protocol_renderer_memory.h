@@ -2000,6 +2000,127 @@ static inline void vcl_encode_clEnqueueMapBufferMESA_reply(struct vcl_cs_encoder
 #endif // CL_API_SUFFIX__VERSION_1_0
 
 #ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_decode_clEnqueueMapImageMESA_args_temp(struct vcl_cs_decoder *dec, struct vcl_command_clEnqueueMapImageMESA *args)
+{
+    vcl_decode_cl_command_queue_lookup(dec, &args->command_queue);
+    vcl_decode_cl_mem_lookup(dec, &args->image);
+    vcl_decode_cl_bool(dec, &args->blocking_map);
+    vcl_decode_cl_map_flags(dec, &args->map_flags);
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, 3);
+        args->origin = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->origin), array_size);
+        if (!args->origin) return;
+        vcl_decode_size_t_array(dec, (size_t *)args->origin, array_size);
+    } else {
+        vcl_decode_array_size(dec, 3);
+        args->origin = NULL;
+    }
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, 3);
+        args->region = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->region), array_size);
+        if (!args->region) return;
+        vcl_decode_size_t_array(dec, (size_t *)args->region, array_size);
+    } else {
+        vcl_decode_array_size(dec, 3);
+        args->region = NULL;
+    }
+    if (vcl_decode_simple_pointer(dec)) {
+        args->image_row_pitch = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->image_row_pitch));
+        if (!args->image_row_pitch) return;
+    } else {
+        args->image_row_pitch = NULL;
+        vcl_cs_decoder_set_fatal(dec);
+    }
+    if (vcl_decode_simple_pointer(dec)) {
+        args->image_slice_pitch = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->image_slice_pitch));
+        if (!args->image_slice_pitch) return;
+    } else {
+        args->image_slice_pitch = NULL;
+        vcl_cs_decoder_set_fatal(dec);
+    }
+    vcl_decode_size_t(dec, &args->size);
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, args->size);
+        args->ptr = vcl_cs_decoder_alloc_temp(dec, array_size);
+        if (!args->ptr) return;
+    } else {
+        vcl_decode_array_size(dec, args->size);
+        args->ptr = NULL;
+    }
+    vcl_decode_cl_uint(dec, &args->num_events_in_wait_list);
+    if (vcl_peek_array_size(dec)) {
+        const cl_uint iter_count = vcl_decode_array_size(dec, args->num_events_in_wait_list);
+        args->event_wait_list = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->event_wait_list), iter_count);
+        if (!args->event_wait_list) return;
+        for (cl_uint i = 0; i < iter_count; i++)
+            vcl_decode_cl_event_lookup(dec, &((cl_event *)args->event_wait_list)[i]);
+    } else {
+        vcl_decode_array_size_unchecked(dec);
+        args->event_wait_list = NULL;
+    }
+    if (vcl_decode_simple_pointer(dec)) {
+        args->event = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->event));
+        if (!args->event) return;
+        vcl_decode_cl_event_temp(dec, args->event);
+    } else {
+        args->event = NULL;
+    }
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_replace_clEnqueueMapImageMESA_args_handle(struct vcl_command_clEnqueueMapImageMESA *args)
+{
+    vcl_replace_cl_command_queue_handle(&args->command_queue);
+    vcl_replace_cl_mem_handle(&args->image);
+    /* skip args->blocking_map */
+    /* skip args->map_flags */
+    /* skip args->origin */
+    /* skip args->region */
+    /* skip args->image_row_pitch */
+    /* skip args->image_slice_pitch */
+    /* skip args->size */
+    /* skip args->ptr */
+    /* skip args->num_events_in_wait_list */
+    if (args->event_wait_list) {
+       for (cl_uint i = 0; i < args->num_events_in_wait_list; i++)
+            vcl_replace_cl_event_handle(&((cl_event *)args->event_wait_list)[i]);
+    }
+    /* skip args->event */
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_encode_clEnqueueMapImageMESA_reply(struct vcl_cs_encoder *enc, const struct vcl_command_clEnqueueMapImageMESA *args)
+{
+    vcl_encode_cl_command_type_ext(enc, &(cl_command_type_ext){CL_COMMAND_TYPE_clEnqueueMapImageMESA_EXT});
+
+    vcl_encode_cl_int(enc, &args->ret);
+    /* skip args->command_queue */
+    /* skip args->image */
+    /* skip args->blocking_map */
+    /* skip args->map_flags */
+    /* skip args->origin */
+    /* skip args->region */
+    if (vcl_encode_simple_pointer(enc, args->image_row_pitch))
+        vcl_encode_size_t(enc, args->image_row_pitch);
+    if (vcl_encode_simple_pointer(enc, args->image_slice_pitch))
+        vcl_encode_size_t(enc, args->image_slice_pitch);
+    /* skip args->size */
+    if (args->ptr) {
+        vcl_encode_array_size(enc, args->size);
+        vcl_encode_blob_array(enc, args->ptr, args->size);
+    } else {
+        vcl_encode_array_size(enc, 0);
+    }
+    /* skip args->num_events_in_wait_list */
+    /* skip args->event_wait_list */
+    if (vcl_encode_simple_pointer(enc, args->event))
+        vcl_encode_cl_event(enc, args->event);
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
 static inline void vcl_decode_clEnqueueUnmapMemObjectMESA_args_temp(struct vcl_cs_decoder *dec, struct vcl_command_clEnqueueUnmapMemObjectMESA *args)
 {
     vcl_decode_cl_command_queue_lookup(dec, &args->command_queue);
@@ -3044,6 +3165,41 @@ static inline void vcl_dispatch_clEnqueueMapBufferMESA(struct vcl_dispatch_conte
     vcl_cs_decoder_reset_temp_pool(ctx->decoder);
 #else
     vcl_dispatch_debug_log(ctx, "CL_API_SUFFIX__VERSION_1_0 not available for clEnqueueMapBufferMESA");
+    vcl_cs_decoder_set_fatal(ctx->decoder);
+#endif // CL_API_SUFFIX__VERSION_1_0
+}
+
+
+static inline void vcl_dispatch_clEnqueueMapImageMESA(struct vcl_dispatch_context *ctx, cl_command_flags_ext flags)
+{
+#ifdef CL_API_SUFFIX__VERSION_1_0
+    struct vcl_command_clEnqueueMapImageMESA args;
+
+    if (!ctx->dispatch_clEnqueueMapImageMESA) {
+        vcl_cs_decoder_set_fatal(ctx->decoder);
+        return;
+    }
+
+    vcl_decode_clEnqueueMapImageMESA_args_temp(ctx->decoder, &args);
+    if (!args.command_queue) {
+        vcl_cs_decoder_set_fatal(ctx->decoder);
+        return;
+    }
+
+    if (!vcl_cs_decoder_get_fatal(ctx->decoder))
+        ctx->dispatch_clEnqueueMapImageMESA(ctx, &args);
+
+#ifdef DEBUG
+    if (!vcl_cs_decoder_get_fatal(ctx->decoder) && vcl_dispatch_should_log_result(args.ret))
+        vcl_dispatch_debug_log(ctx, "clEnqueueMapImageMESA returned %d", args.ret);
+#endif
+
+    if ((flags & CL_COMMAND_GENERATE_REPLY_BIT_EXT) && !vcl_cs_decoder_get_fatal(ctx->decoder))
+        vcl_encode_clEnqueueMapImageMESA_reply(ctx->encoder, &args);
+
+    vcl_cs_decoder_reset_temp_pool(ctx->decoder);
+#else
+    vcl_dispatch_debug_log(ctx, "CL_API_SUFFIX__VERSION_1_0 not available for clEnqueueMapImageMESA");
     vcl_cs_decoder_set_fatal(ctx->decoder);
 #endif // CL_API_SUFFIX__VERSION_1_0
 }

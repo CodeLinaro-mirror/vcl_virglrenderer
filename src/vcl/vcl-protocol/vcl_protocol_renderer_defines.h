@@ -134,6 +134,7 @@ typedef enum cl_command_type_ext {
     CL_COMMAND_TYPE_clCreateCommandQueue_EXT = 111,
     CL_COMMAND_TYPE_clCreateSampler_EXT = 112,
     CL_COMMAND_TYPE_clEnqueueTask_EXT = 113,
+    CL_COMMAND_TYPE_clEnqueueMapImageMESA_EXT = 230,
     CL_COMMAND_TYPE_clEnqueueUnmapMemObjectMESA_EXT = 231,
     CL_COMMAND_TYPE_clEnqueueMapBufferMESA_EXT = 232,
     CL_COMMAND_TYPE_clEnqueueReadImageMESA_EXT = 233,
@@ -2108,6 +2109,28 @@ struct vcl_command_clEnqueueMapBufferMESA {
 #endif // CL_API_SUFFIX__VERSION_1_0
 };
 
+struct vcl_command_clEnqueueMapImageMESA {
+#ifdef CL_API_SUFFIX__VERSION_1_0
+    cl_command_queue command_queue;
+    cl_mem image;
+    cl_bool blocking_map;
+    cl_map_flags map_flags;
+    const size_t* origin;
+    const size_t* region;
+    size_t* image_row_pitch;
+    size_t* image_slice_pitch;
+    size_t size;
+    void* ptr;
+    cl_uint num_events_in_wait_list;
+    const cl_event* event_wait_list;
+    cl_event* event;
+    
+    cl_int ret;
+#else //
+    cl_uint dummy;
+#endif // CL_API_SUFFIX__VERSION_1_0
+};
+
 struct vcl_command_clEnqueueUnmapMemObjectMESA {
 #ifdef CL_API_SUFFIX__VERSION_1_0
     cl_command_queue command_queue;
@@ -2269,6 +2292,7 @@ struct vcl_dispatch_context {
     void (*dispatch_clEnqueueWriteImageMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueWriteImageMESA *args);
     void (*dispatch_clEnqueueFillImageMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueFillImageMESA *args);
     void (*dispatch_clEnqueueMapBufferMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueMapBufferMESA *args);
+    void (*dispatch_clEnqueueMapImageMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueMapImageMESA *args);
     void (*dispatch_clEnqueueUnmapMemObjectMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueUnmapMemObjectMESA *args);
 };
 
