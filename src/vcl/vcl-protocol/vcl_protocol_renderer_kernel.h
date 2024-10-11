@@ -452,91 +452,6 @@ static inline void vcl_encode_clGetKernelSubGroupInfo_reply(struct vcl_cs_encode
 #endif // CL_API_SUFFIX__VERSION_2_1
 
 #ifdef CL_API_SUFFIX__VERSION_1_0
-static inline void vcl_decode_clEnqueueNDRangeKernel_args_temp(struct vcl_cs_decoder *dec, struct vcl_command_clEnqueueNDRangeKernel *args)
-{
-    vcl_decode_cl_command_queue_lookup(dec, &args->command_queue);
-    vcl_decode_cl_kernel_lookup(dec, &args->kernel);
-    vcl_decode_cl_uint(dec, &args->work_dim);
-    if (vcl_decode_simple_pointer(dec)) {
-        args->global_work_offset = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->global_work_offset));
-        if (!args->global_work_offset) return;
-        vcl_decode_size_t(dec, (size_t *)args->global_work_offset);
-    } else {
-        args->global_work_offset = NULL;
-    }
-    if (vcl_decode_simple_pointer(dec)) {
-        args->global_work_size = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->global_work_size));
-        if (!args->global_work_size) return;
-        vcl_decode_size_t(dec, (size_t *)args->global_work_size);
-    } else {
-        args->global_work_size = NULL;
-    }
-    if (vcl_decode_simple_pointer(dec)) {
-        args->local_work_size = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->local_work_size));
-        if (!args->local_work_size) return;
-        vcl_decode_size_t(dec, (size_t *)args->local_work_size);
-    } else {
-        args->local_work_size = NULL;
-    }
-    vcl_decode_cl_uint(dec, &args->num_events_in_wait_list);
-    if (vcl_peek_array_size(dec)) {
-        const cl_uint iter_count = vcl_decode_array_size(dec, args->num_events_in_wait_list);
-        args->event_wait_list = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->event_wait_list), iter_count);
-        if (!args->event_wait_list) return;
-        for (cl_uint i = 0; i < iter_count; i++)
-            vcl_decode_cl_event_lookup(dec, &((cl_event *)args->event_wait_list)[i]);
-    } else {
-        vcl_decode_array_size_unchecked(dec);
-        args->event_wait_list = NULL;
-    }
-    if (vcl_decode_simple_pointer(dec)) {
-        args->event = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->event));
-        if (!args->event) return;
-        vcl_decode_cl_event_temp(dec, args->event);
-    } else {
-        args->event = NULL;
-    }
-}
-#endif // CL_API_SUFFIX__VERSION_1_0
-
-#ifdef CL_API_SUFFIX__VERSION_1_0
-static inline void vcl_replace_clEnqueueNDRangeKernel_args_handle(struct vcl_command_clEnqueueNDRangeKernel *args)
-{
-    vcl_replace_cl_command_queue_handle(&args->command_queue);
-    vcl_replace_cl_kernel_handle(&args->kernel);
-    /* skip args->work_dim */
-    /* skip args->global_work_offset */
-    /* skip args->global_work_size */
-    /* skip args->local_work_size */
-    /* skip args->num_events_in_wait_list */
-    if (args->event_wait_list) {
-       for (cl_uint i = 0; i < args->num_events_in_wait_list; i++)
-            vcl_replace_cl_event_handle(&((cl_event *)args->event_wait_list)[i]);
-    }
-    /* skip args->event */
-}
-#endif // CL_API_SUFFIX__VERSION_1_0
-
-#ifdef CL_API_SUFFIX__VERSION_1_0
-static inline void vcl_encode_clEnqueueNDRangeKernel_reply(struct vcl_cs_encoder *enc, const struct vcl_command_clEnqueueNDRangeKernel *args)
-{
-    vcl_encode_cl_command_type_ext(enc, &(cl_command_type_ext){CL_COMMAND_TYPE_clEnqueueNDRangeKernel_EXT});
-
-    vcl_encode_cl_int(enc, &args->ret);
-    /* skip args->command_queue */
-    /* skip args->kernel */
-    /* skip args->work_dim */
-    /* skip args->global_work_offset */
-    /* skip args->global_work_size */
-    /* skip args->local_work_size */
-    /* skip args->num_events_in_wait_list */
-    /* skip args->event_wait_list */
-    if (vcl_encode_simple_pointer(enc, args->event))
-        vcl_encode_cl_event(enc, args->event);
-}
-#endif // CL_API_SUFFIX__VERSION_1_0
-
-#ifdef CL_API_SUFFIX__VERSION_1_0
 static inline void vcl_decode_clEnqueueNativeKernel_args_temp(struct vcl_cs_decoder *dec, struct vcl_command_clEnqueueNativeKernel *args)
 {
     vcl_decode_cl_command_queue_lookup(dec, &args->command_queue);
@@ -767,6 +682,106 @@ static inline void vcl_encode_clCloneKernelMESA_reply(struct vcl_cs_encoder *enc
         vcl_encode_cl_kernel(enc, args->kernel);
 }
 #endif // CL_API_SUFFIX__VERSION_2_1
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_decode_clEnqueueNDRangeKernelMESA_args_temp(struct vcl_cs_decoder *dec, struct vcl_command_clEnqueueNDRangeKernelMESA *args)
+{
+    vcl_decode_cl_command_queue_lookup(dec, &args->command_queue);
+    vcl_decode_cl_kernel_lookup(dec, &args->kernel);
+    vcl_decode_cl_uint(dec, &args->work_dim);
+    vcl_decode_cl_uint(dec, &args->global_work_offset_dim);
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, args->global_work_offset_dim);
+        args->global_work_offset = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->global_work_offset), array_size);
+        if (!args->global_work_offset) return;
+        vcl_decode_size_t_array(dec, (size_t *)args->global_work_offset, array_size);
+    } else {
+        vcl_decode_array_size_unchecked(dec);
+        args->global_work_offset = NULL;
+    }
+    vcl_decode_cl_uint(dec, &args->global_work_size_dim);
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, args->global_work_size_dim);
+        args->global_work_size = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->global_work_size), array_size);
+        if (!args->global_work_size) return;
+        vcl_decode_size_t_array(dec, (size_t *)args->global_work_size, array_size);
+    } else {
+        vcl_decode_array_size_unchecked(dec);
+        args->global_work_size = NULL;
+    }
+    vcl_decode_cl_uint(dec, &args->local_work_size_dim);
+    if (vcl_peek_array_size(dec)) {
+        const size_t array_size = vcl_decode_array_size(dec, args->local_work_size_dim);
+        args->local_work_size = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->local_work_size), array_size);
+        if (!args->local_work_size) return;
+        vcl_decode_size_t_array(dec, (size_t *)args->local_work_size, array_size);
+    } else {
+        vcl_decode_array_size_unchecked(dec);
+        args->local_work_size = NULL;
+    }
+    vcl_decode_cl_uint(dec, &args->num_events_in_wait_list);
+    if (vcl_peek_array_size(dec)) {
+        const cl_uint iter_count = vcl_decode_array_size(dec, args->num_events_in_wait_list);
+        args->event_wait_list = vcl_cs_decoder_alloc_temp_array(dec, sizeof(*args->event_wait_list), iter_count);
+        if (!args->event_wait_list) return;
+        for (cl_uint i = 0; i < iter_count; i++)
+            vcl_decode_cl_event_lookup(dec, &((cl_event *)args->event_wait_list)[i]);
+    } else {
+        vcl_decode_array_size_unchecked(dec);
+        args->event_wait_list = NULL;
+    }
+    if (vcl_decode_simple_pointer(dec)) {
+        args->event = vcl_cs_decoder_alloc_temp(dec, sizeof(*args->event));
+        if (!args->event) return;
+        vcl_decode_cl_event_temp(dec, args->event);
+    } else {
+        args->event = NULL;
+    }
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_replace_clEnqueueNDRangeKernelMESA_args_handle(struct vcl_command_clEnqueueNDRangeKernelMESA *args)
+{
+    vcl_replace_cl_command_queue_handle(&args->command_queue);
+    vcl_replace_cl_kernel_handle(&args->kernel);
+    /* skip args->work_dim */
+    /* skip args->global_work_offset_dim */
+    /* skip args->global_work_offset */
+    /* skip args->global_work_size_dim */
+    /* skip args->global_work_size */
+    /* skip args->local_work_size_dim */
+    /* skip args->local_work_size */
+    /* skip args->num_events_in_wait_list */
+    if (args->event_wait_list) {
+       for (cl_uint i = 0; i < args->num_events_in_wait_list; i++)
+            vcl_replace_cl_event_handle(&((cl_event *)args->event_wait_list)[i]);
+    }
+    /* skip args->event */
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
+
+#ifdef CL_API_SUFFIX__VERSION_1_0
+static inline void vcl_encode_clEnqueueNDRangeKernelMESA_reply(struct vcl_cs_encoder *enc, const struct vcl_command_clEnqueueNDRangeKernelMESA *args)
+{
+    vcl_encode_cl_command_type_ext(enc, &(cl_command_type_ext){CL_COMMAND_TYPE_clEnqueueNDRangeKernelMESA_EXT});
+
+    vcl_encode_cl_int(enc, &args->ret);
+    /* skip args->command_queue */
+    /* skip args->kernel */
+    /* skip args->work_dim */
+    /* skip args->global_work_offset_dim */
+    /* skip args->global_work_offset */
+    /* skip args->global_work_size_dim */
+    /* skip args->global_work_size */
+    /* skip args->local_work_size_dim */
+    /* skip args->local_work_size */
+    /* skip args->num_events_in_wait_list */
+    /* skip args->event_wait_list */
+    if (vcl_encode_simple_pointer(enc, args->event))
+        vcl_encode_cl_event(enc, args->event);
+}
+#endif // CL_API_SUFFIX__VERSION_1_0
 
 
 static inline void vcl_dispatch_clCreateKernelsInProgram(struct vcl_dispatch_context *ctx, cl_command_flags_ext flags)
@@ -1084,41 +1099,6 @@ static inline void vcl_dispatch_clGetKernelSubGroupInfo(struct vcl_dispatch_cont
 }
 
 
-static inline void vcl_dispatch_clEnqueueNDRangeKernel(struct vcl_dispatch_context *ctx, cl_command_flags_ext flags)
-{
-#ifdef CL_API_SUFFIX__VERSION_1_0
-    struct vcl_command_clEnqueueNDRangeKernel args;
-
-    if (!ctx->dispatch_clEnqueueNDRangeKernel) {
-        vcl_cs_decoder_set_fatal(ctx->decoder);
-        return;
-    }
-
-    vcl_decode_clEnqueueNDRangeKernel_args_temp(ctx->decoder, &args);
-    if (!args.command_queue) {
-        vcl_cs_decoder_set_fatal(ctx->decoder);
-        return;
-    }
-
-    if (!vcl_cs_decoder_get_fatal(ctx->decoder))
-        ctx->dispatch_clEnqueueNDRangeKernel(ctx, &args);
-
-#ifdef DEBUG
-    if (!vcl_cs_decoder_get_fatal(ctx->decoder) && vcl_dispatch_should_log_result(args.ret))
-        vcl_dispatch_debug_log(ctx, "clEnqueueNDRangeKernel returned %d", args.ret);
-#endif
-
-    if ((flags & CL_COMMAND_GENERATE_REPLY_BIT_EXT) && !vcl_cs_decoder_get_fatal(ctx->decoder))
-        vcl_encode_clEnqueueNDRangeKernel_reply(ctx->encoder, &args);
-
-    vcl_cs_decoder_reset_temp_pool(ctx->decoder);
-#else
-    vcl_dispatch_debug_log(ctx, "CL_API_SUFFIX__VERSION_1_0 not available for clEnqueueNDRangeKernel");
-    vcl_cs_decoder_set_fatal(ctx->decoder);
-#endif // CL_API_SUFFIX__VERSION_1_0
-}
-
-
 static inline void vcl_dispatch_clEnqueueNativeKernel(struct vcl_dispatch_context *ctx, cl_command_flags_ext flags)
 {
 #ifdef CL_API_SUFFIX__VERSION_1_0
@@ -1256,6 +1236,41 @@ static inline void vcl_dispatch_clCloneKernelMESA(struct vcl_dispatch_context *c
     vcl_dispatch_debug_log(ctx, "CL_API_SUFFIX__VERSION_2_1 not available for clCloneKernelMESA");
     vcl_cs_decoder_set_fatal(ctx->decoder);
 #endif // CL_API_SUFFIX__VERSION_2_1
+}
+
+
+static inline void vcl_dispatch_clEnqueueNDRangeKernelMESA(struct vcl_dispatch_context *ctx, cl_command_flags_ext flags)
+{
+#ifdef CL_API_SUFFIX__VERSION_1_0
+    struct vcl_command_clEnqueueNDRangeKernelMESA args;
+
+    if (!ctx->dispatch_clEnqueueNDRangeKernelMESA) {
+        vcl_cs_decoder_set_fatal(ctx->decoder);
+        return;
+    }
+
+    vcl_decode_clEnqueueNDRangeKernelMESA_args_temp(ctx->decoder, &args);
+    if (!args.command_queue) {
+        vcl_cs_decoder_set_fatal(ctx->decoder);
+        return;
+    }
+
+    if (!vcl_cs_decoder_get_fatal(ctx->decoder))
+        ctx->dispatch_clEnqueueNDRangeKernelMESA(ctx, &args);
+
+#ifdef DEBUG
+    if (!vcl_cs_decoder_get_fatal(ctx->decoder) && vcl_dispatch_should_log_result(args.ret))
+        vcl_dispatch_debug_log(ctx, "clEnqueueNDRangeKernelMESA returned %d", args.ret);
+#endif
+
+    if ((flags & CL_COMMAND_GENERATE_REPLY_BIT_EXT) && !vcl_cs_decoder_get_fatal(ctx->decoder))
+        vcl_encode_clEnqueueNDRangeKernelMESA_reply(ctx->encoder, &args);
+
+    vcl_cs_decoder_reset_temp_pool(ctx->decoder);
+#else
+    vcl_dispatch_debug_log(ctx, "CL_API_SUFFIX__VERSION_1_0 not available for clEnqueueNDRangeKernelMESA");
+    vcl_cs_decoder_set_fatal(ctx->decoder);
+#endif // CL_API_SUFFIX__VERSION_1_0
 }
 
 #pragma GCC diagnostic pop

@@ -134,6 +134,7 @@ typedef enum cl_command_type_ext {
     CL_COMMAND_TYPE_clCreateCommandQueue_EXT = 111,
     CL_COMMAND_TYPE_clCreateSampler_EXT = 112,
     CL_COMMAND_TYPE_clEnqueueTask_EXT = 113,
+    CL_COMMAND_TYPE_clEnqueueNDRangeKernelMESA_EXT = 229,
     CL_COMMAND_TYPE_clEnqueueMapImageMESA_EXT = 230,
     CL_COMMAND_TYPE_clEnqueueUnmapMemObjectMESA_EXT = 231,
     CL_COMMAND_TYPE_clEnqueueMapBufferMESA_EXT = 232,
@@ -2147,6 +2148,27 @@ struct vcl_command_clEnqueueUnmapMemObjectMESA {
 #endif // CL_API_SUFFIX__VERSION_1_0
 };
 
+struct vcl_command_clEnqueueNDRangeKernelMESA {
+#ifdef CL_API_SUFFIX__VERSION_1_0
+    cl_command_queue command_queue;
+    cl_kernel kernel;
+    cl_uint work_dim;
+    cl_uint global_work_offset_dim;
+    const size_t* global_work_offset;
+    cl_uint global_work_size_dim;
+    const size_t* global_work_size;
+    cl_uint local_work_size_dim;
+    const size_t* local_work_size;
+    cl_uint num_events_in_wait_list;
+    const cl_event* event_wait_list;
+    cl_event* event;
+    
+    cl_int ret;
+#else //
+    cl_uint dummy;
+#endif // CL_API_SUFFIX__VERSION_1_0
+};
+
 struct vcl_dispatch_context {
     void *data;
     void (*debug_log)(struct vcl_dispatch_context *ctx, const char *msg);
@@ -2294,6 +2316,7 @@ struct vcl_dispatch_context {
     void (*dispatch_clEnqueueMapBufferMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueMapBufferMESA *args);
     void (*dispatch_clEnqueueMapImageMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueMapImageMESA *args);
     void (*dispatch_clEnqueueUnmapMemObjectMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueUnmapMemObjectMESA *args);
+    void (*dispatch_clEnqueueNDRangeKernelMESA)(struct vcl_dispatch_context *ctx, struct vcl_command_clEnqueueNDRangeKernelMESA *args);
 };
 
 static inline void vcl_dispatch_debug_log(struct vcl_dispatch_context *ctx, const char *format, ...)

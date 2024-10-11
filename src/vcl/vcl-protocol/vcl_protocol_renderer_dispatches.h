@@ -133,6 +133,7 @@ static inline const char *vcl_dispatch_command_name(cl_command_type_ext type)
     case CL_COMMAND_TYPE_clEnqueueMapBufferMESA_EXT: return "clEnqueueMapBufferMESA";
     case CL_COMMAND_TYPE_clEnqueueMapImageMESA_EXT: return "clEnqueueMapImageMESA";
     case CL_COMMAND_TYPE_clEnqueueUnmapMemObjectMESA_EXT: return "clEnqueueUnmapMemObjectMESA";
+    case CL_COMMAND_TYPE_clEnqueueNDRangeKernelMESA_EXT: return "clEnqueueNDRangeKernelMESA";
     case CL_COMMAND_TYPE_clSetContextDestructorCallback_EXT: return "clSetContextDestructorCallback";
     case CL_COMMAND_TYPE_clCreateBuffer_EXT: return "clCreateBuffer";
     case CL_COMMAND_TYPE_clCreateBufferWithProperties_EXT: return "clCreateBufferWithProperties";
@@ -278,6 +279,7 @@ static void (*const vcl_dispatch_table[256])(struct vcl_dispatch_context *ctx, c
     [CL_COMMAND_TYPE_clEnqueueMapBufferMESA_EXT] = vcl_dispatch_clEnqueueMapBufferMESA,
     [CL_COMMAND_TYPE_clEnqueueMapImageMESA_EXT] = vcl_dispatch_clEnqueueMapImageMESA,
     [CL_COMMAND_TYPE_clEnqueueUnmapMemObjectMESA_EXT] = vcl_dispatch_clEnqueueUnmapMemObjectMESA,
+    [CL_COMMAND_TYPE_clEnqueueNDRangeKernelMESA_EXT] = vcl_dispatch_clEnqueueNDRangeKernelMESA,
 };
 
 static inline void vcl_dispatch_command(struct vcl_dispatch_context *ctx)
