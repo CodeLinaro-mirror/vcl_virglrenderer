@@ -12366,7 +12366,7 @@ static void vrend_renderer_fill_caps_v2(int gl_ver, int gles_ver,  union virgl_c
     * this value to avoid regressions when a guest with a new mesa version is
     * run on an old virgl host. Use it also to indicate non-cap fixes on the
     * host that help enable features in the guest. */
-   caps->v2.host_feature_check_version = 22;
+   caps->v2.host_feature_check_version = 23;
 
    /* Forward host GL_RENDERER to the guest. */
    strncpy(caps->v2.renderer, renderer, sizeof(caps->v2.renderer) - 1);
@@ -12448,13 +12448,20 @@ static void vrend_renderer_fill_caps_v2(int gl_ver, int gles_ver,  union virgl_c
       glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, (GLint*)&caps->v2.shader_buffer_offset_alignment);
 
       glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &max);
-      if (max > PIPE_MAX_SHADER_BUFFERS)
-         max = PIPE_MAX_SHADER_BUFFERS;
-      caps->v2.max_shader_buffer_other_stages = max;
+      caps->v2.max_shader_buffer_other_stages = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_VERTEX] = caps->v2.max_shader_buffer_other_stages;
       glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &max);
-      if (max > PIPE_MAX_SHADER_BUFFERS)
-         max = PIPE_MAX_SHADER_BUFFERS;
-      caps->v2.max_shader_buffer_frag_compute = max;
+      caps->v2.max_shader_buffer_frag_compute = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_FRAGMENT] = caps->v2.max_shader_buffer_frag_compute;
+      glGetIntegerv(GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS, &max);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_GEOMETRY] = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+      glGetIntegerv(GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS, &max);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_TESS_CTRL] = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+      glGetIntegerv(GL_MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS, &max);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_TESS_EVAL] = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+      glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &max);
+      caps->v2.max_shader_storage_blocks[PIPE_SHADER_COMPUTE] = MAX2(max, PIPE_MAX_SHADER_BUFFERS);
+
       glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &max);
       /* We use a 32 bit mask for the binding points and the binding points
        * must be sufficient for all shader stages combined. */
