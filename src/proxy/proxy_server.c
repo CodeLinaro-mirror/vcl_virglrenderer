@@ -66,10 +66,8 @@ proxy_server_fork(struct proxy_server *srv)
       char fd_str[16];
       snprintf(fd_str, sizeof(fd_str), "%d", remote_fd);
 
-      /* for devenv without installing server */
-      char *const server_path = getenv("RENDER_SERVER_EXEC_PATH");
       char *const argv[] = {
-         server_path ? server_path : RENDER_SERVER_EXEC_PATH,
+         RENDER_SERVER_EXEC_PATH,
          "--socket-fd",
          fd_str,
          NULL,

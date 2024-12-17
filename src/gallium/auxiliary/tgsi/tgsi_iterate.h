@@ -37,38 +37,38 @@ extern "C" {
 
 struct tgsi_iterate_context
 {
-   bool
+   boolean
    (* prolog)(
       struct tgsi_iterate_context *ctx );
 
-   bool
+   boolean
    (* iterate_instruction)(
       struct tgsi_iterate_context *ctx,
       struct tgsi_full_instruction *inst );
 
-   bool
+   boolean
    (* iterate_declaration)(
       struct tgsi_iterate_context *ctx,
       struct tgsi_full_declaration *decl );
 
-   bool
+   boolean
    (* iterate_immediate)(
       struct tgsi_iterate_context *ctx,
       struct tgsi_full_immediate *imm );
 
-   bool
+   boolean
    (* iterate_property)(
       struct tgsi_iterate_context *ctx,
       struct tgsi_full_property *prop );
 
-   bool
+   boolean
    (* epilog)(
       struct tgsi_iterate_context *ctx );
 
    struct tgsi_processor processor;
 };
 
-bool
+boolean
 tgsi_iterate_shader(
    const struct tgsi_token *tokens,
    struct tgsi_iterate_context *ctx );

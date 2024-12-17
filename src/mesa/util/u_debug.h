@@ -47,7 +47,6 @@
 
 #include "util/os_misc.h"
 #include "util/detect_os.h"
-#include "pipe/p_compiler.h"
 #include "util/macros.h"
 
 #if DETECT_OS_HAIKU

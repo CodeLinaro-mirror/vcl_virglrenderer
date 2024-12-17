@@ -35,7 +35,6 @@
 #mesondefine ENABLE_MINIGBM_ALLOCATION
 #mesondefine ENABLE_VENUS
 #mesondefine ENABLE_VENUS_VALIDATE
-#mesondefine ENABLE_GBM
 #mesondefine ENABLE_DRM
 #mesondefine ENABLE_DRM_MSM
 #mesondefine ENABLE_RENDER_SERVER
@@ -43,9 +42,11 @@
 #mesondefine ENABLE_RENDER_SERVER_WORKER_THREAD
 #mesondefine ENABLE_RENDER_SERVER_WORKER_MINIJAIL
 #mesondefine RENDER_SERVER_EXEC_PATH
+#mesondefine ENABLE_GBM
 #mesondefine HAVE_EVENTFD_H
 #mesondefine HAVE_DLFCN_H
 #mesondefine ENABLE_VIDEO
+#mesondefine ENABLE_VQNN
 #mesondefine ENABLE_TRACING
 #mesondefine UTIL_ARCH_LITTLE_ENDIAN
 #mesondefine UTIL_ARCH_BIG_ENDIAN
@@ -56,3 +57,4 @@
 #mesondefine PIPE_ARCH_S390
 #mesondefine PIPE_ARCH_ARM
 #mesondefine PIPE_ARCH_AARCH64
+#mesondefine QNN_BACKENDPATH

@@ -46,9 +46,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "util/u_formats.h"
+#include "pipe/p_format.h"
 #include "pipe/p_video_enums.h"
-#include "util/u_formats.h"
 
 struct virgl_video_codec;
 struct virgl_video_buffer;
@@ -135,8 +134,7 @@ int virgl_video_fill_caps(union virgl_caps *caps);
 struct virgl_video_codec *virgl_video_create_codec(
         const struct virgl_video_create_codec_args *args);
 void virgl_video_destroy_codec(struct virgl_video_codec *codec);
-enum pipe_video_profile virgl_video_codec_profile(
-        const struct virgl_video_codec *codec);
+uint32_t virgl_video_codec_profile(const struct virgl_video_codec *codec);
 void *virgl_video_codec_opaque_data(struct virgl_video_codec *codec);
 
 struct virgl_video_buffer *virgl_video_create_buffer(

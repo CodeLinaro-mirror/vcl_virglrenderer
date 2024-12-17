@@ -60,7 +60,7 @@ fuzzy_tests = [
 ]
 
 test_depends = [
-   libvirglrenderer_dep,
+   libvirqnnrenderer_dep,
    check_dep,
 ]
 
@@ -76,7 +76,7 @@ endforeach
 
 
 fuzzytest_depends = [
-   libvirglrenderer_dep,
+   libvirqnnrenderer_dep,
    epoxy_dep,
 ]
 

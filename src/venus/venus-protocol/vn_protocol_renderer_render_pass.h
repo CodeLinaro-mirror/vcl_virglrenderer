@@ -11,9 +11,6 @@
 #include "vn_protocol_renderer_structs.h"
 
 #pragma GCC diagnostic push
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
 #pragma GCC diagnostic ignored "-Wpointer-arith"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -73,7 +70,7 @@ vn_decode_VkSubpassDescription_temp(struct vn_cs_decoder *dec, VkSubpassDescript
     vn_decode_uint32_t(dec, &val->inputAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->inputAttachmentCount);
-        val->pInputAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pInputAttachments), iter_count);
+        val->pInputAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pInputAttachments) * iter_count);
         if (!val->pInputAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference_temp(dec, &((VkAttachmentReference *)val->pInputAttachments)[i]);
@@ -84,7 +81,7 @@ vn_decode_VkSubpassDescription_temp(struct vn_cs_decoder *dec, VkSubpassDescript
     vn_decode_uint32_t(dec, &val->colorAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->colorAttachmentCount);
-        val->pColorAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pColorAttachments), iter_count);
+        val->pColorAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pColorAttachments) * iter_count);
         if (!val->pColorAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference_temp(dec, &((VkAttachmentReference *)val->pColorAttachments)[i]);
@@ -94,7 +91,7 @@ vn_decode_VkSubpassDescription_temp(struct vn_cs_decoder *dec, VkSubpassDescript
     }
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->colorAttachmentCount);
-        val->pResolveAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pResolveAttachments), iter_count);
+        val->pResolveAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pResolveAttachments) * iter_count);
         if (!val->pResolveAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference_temp(dec, &((VkAttachmentReference *)val->pResolveAttachments)[i]);
@@ -112,7 +109,7 @@ vn_decode_VkSubpassDescription_temp(struct vn_cs_decoder *dec, VkSubpassDescript
     vn_decode_uint32_t(dec, &val->preserveAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->preserveAttachmentCount);
-        val->pPreserveAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pPreserveAttachments), array_size);
+        val->pPreserveAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pPreserveAttachments) * array_size);
         if (!val->pPreserveAttachments) return;
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pPreserveAttachments, array_size);
     } else {
@@ -190,7 +187,7 @@ vn_decode_VkRenderPassMultiviewCreateInfo_self_temp(struct vn_cs_decoder *dec, V
     vn_decode_uint32_t(dec, &val->subpassCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->subpassCount);
-        val->pViewMasks = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pViewMasks), array_size);
+        val->pViewMasks = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pViewMasks) * array_size);
         if (!val->pViewMasks) return;
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pViewMasks, array_size);
     } else {
@@ -200,7 +197,7 @@ vn_decode_VkRenderPassMultiviewCreateInfo_self_temp(struct vn_cs_decoder *dec, V
     vn_decode_uint32_t(dec, &val->dependencyCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->dependencyCount);
-        val->pViewOffsets = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pViewOffsets), array_size);
+        val->pViewOffsets = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pViewOffsets) * array_size);
         if (!val->pViewOffsets) return;
         vn_decode_int32_t_array(dec, (int32_t *)val->pViewOffsets, array_size);
     } else {
@@ -210,7 +207,7 @@ vn_decode_VkRenderPassMultiviewCreateInfo_self_temp(struct vn_cs_decoder *dec, V
     vn_decode_uint32_t(dec, &val->correlationMaskCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->correlationMaskCount);
-        val->pCorrelationMasks = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pCorrelationMasks), array_size);
+        val->pCorrelationMasks = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pCorrelationMasks) * array_size);
         if (!val->pCorrelationMasks) return;
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pCorrelationMasks, array_size);
     } else {
@@ -299,7 +296,7 @@ vn_decode_VkRenderPassInputAttachmentAspectCreateInfo_self_temp(struct vn_cs_dec
     vn_decode_uint32_t(dec, &val->aspectReferenceCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->aspectReferenceCount);
-        val->pAspectReferences = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pAspectReferences), iter_count);
+        val->pAspectReferences = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pAspectReferences) * iter_count);
         if (!val->pAspectReferences) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkInputAttachmentAspectReference_temp(dec, &((VkInputAttachmentAspectReference *)val->pAspectReferences)[i]);
@@ -399,7 +396,7 @@ vn_decode_VkRenderPassCreateInfo_self_temp(struct vn_cs_decoder *dec, VkRenderPa
     vn_decode_uint32_t(dec, &val->attachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->attachmentCount);
-        val->pAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pAttachments), iter_count);
+        val->pAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pAttachments) * iter_count);
         if (!val->pAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentDescription_temp(dec, &((VkAttachmentDescription *)val->pAttachments)[i]);
@@ -410,7 +407,7 @@ vn_decode_VkRenderPassCreateInfo_self_temp(struct vn_cs_decoder *dec, VkRenderPa
     vn_decode_uint32_t(dec, &val->subpassCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->subpassCount);
-        val->pSubpasses = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pSubpasses), iter_count);
+        val->pSubpasses = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pSubpasses) * iter_count);
         if (!val->pSubpasses) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkSubpassDescription_temp(dec, &((VkSubpassDescription *)val->pSubpasses)[i]);
@@ -421,7 +418,7 @@ vn_decode_VkRenderPassCreateInfo_self_temp(struct vn_cs_decoder *dec, VkRenderPa
     vn_decode_uint32_t(dec, &val->dependencyCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->dependencyCount);
-        val->pDependencies = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pDependencies), iter_count);
+        val->pDependencies = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pDependencies) * iter_count);
         if (!val->pDependencies) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkSubpassDependency_temp(dec, &((VkSubpassDependency *)val->pDependencies)[i]);
@@ -896,7 +893,7 @@ vn_decode_VkSubpassDescription2_self_temp(struct vn_cs_decoder *dec, VkSubpassDe
     vn_decode_uint32_t(dec, &val->inputAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->inputAttachmentCount);
-        val->pInputAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pInputAttachments), iter_count);
+        val->pInputAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pInputAttachments) * iter_count);
         if (!val->pInputAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference2_temp(dec, &((VkAttachmentReference2 *)val->pInputAttachments)[i]);
@@ -907,7 +904,7 @@ vn_decode_VkSubpassDescription2_self_temp(struct vn_cs_decoder *dec, VkSubpassDe
     vn_decode_uint32_t(dec, &val->colorAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->colorAttachmentCount);
-        val->pColorAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pColorAttachments), iter_count);
+        val->pColorAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pColorAttachments) * iter_count);
         if (!val->pColorAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference2_temp(dec, &((VkAttachmentReference2 *)val->pColorAttachments)[i]);
@@ -917,7 +914,7 @@ vn_decode_VkSubpassDescription2_self_temp(struct vn_cs_decoder *dec, VkSubpassDe
     }
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->colorAttachmentCount);
-        val->pResolveAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pResolveAttachments), iter_count);
+        val->pResolveAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pResolveAttachments) * iter_count);
         if (!val->pResolveAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentReference2_temp(dec, &((VkAttachmentReference2 *)val->pResolveAttachments)[i]);
@@ -935,7 +932,7 @@ vn_decode_VkSubpassDescription2_self_temp(struct vn_cs_decoder *dec, VkSubpassDe
     vn_decode_uint32_t(dec, &val->preserveAttachmentCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->preserveAttachmentCount);
-        val->pPreserveAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pPreserveAttachments), array_size);
+        val->pPreserveAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pPreserveAttachments) * array_size);
         if (!val->pPreserveAttachments) return;
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pPreserveAttachments, array_size);
     } else {
@@ -1119,7 +1116,7 @@ vn_decode_VkRenderPassCreateInfo2_self_temp(struct vn_cs_decoder *dec, VkRenderP
     vn_decode_uint32_t(dec, &val->attachmentCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->attachmentCount);
-        val->pAttachments = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pAttachments), iter_count);
+        val->pAttachments = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pAttachments) * iter_count);
         if (!val->pAttachments) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkAttachmentDescription2_temp(dec, &((VkAttachmentDescription2 *)val->pAttachments)[i]);
@@ -1130,7 +1127,7 @@ vn_decode_VkRenderPassCreateInfo2_self_temp(struct vn_cs_decoder *dec, VkRenderP
     vn_decode_uint32_t(dec, &val->subpassCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->subpassCount);
-        val->pSubpasses = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pSubpasses), iter_count);
+        val->pSubpasses = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pSubpasses) * iter_count);
         if (!val->pSubpasses) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkSubpassDescription2_temp(dec, &((VkSubpassDescription2 *)val->pSubpasses)[i]);
@@ -1141,7 +1138,7 @@ vn_decode_VkRenderPassCreateInfo2_self_temp(struct vn_cs_decoder *dec, VkRenderP
     vn_decode_uint32_t(dec, &val->dependencyCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->dependencyCount);
-        val->pDependencies = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pDependencies), iter_count);
+        val->pDependencies = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pDependencies) * iter_count);
         if (!val->pDependencies) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkSubpassDependency2_temp(dec, &((VkSubpassDependency2 *)val->pDependencies)[i]);
@@ -1152,7 +1149,7 @@ vn_decode_VkRenderPassCreateInfo2_self_temp(struct vn_cs_decoder *dec, VkRenderP
     vn_decode_uint32_t(dec, &val->correlatedViewMaskCount);
     if (vn_peek_array_size(dec)) {
         const size_t array_size = vn_decode_array_size(dec, val->correlatedViewMaskCount);
-        val->pCorrelatedViewMasks = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pCorrelatedViewMasks), array_size);
+        val->pCorrelatedViewMasks = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pCorrelatedViewMasks) * array_size);
         if (!val->pCorrelatedViewMasks) return;
         vn_decode_uint32_t_array(dec, (uint32_t *)val->pCorrelatedViewMasks, array_size);
     } else {
@@ -1392,8 +1389,8 @@ static inline void vn_dispatch_vkCreateRenderPass(struct vn_dispatch_context *ct
         vn_dispatch_debug_log(ctx, "vkCreateRenderPass returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkCreateRenderPass_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkCreateRenderPass_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -1416,8 +1413,9 @@ static inline void vn_dispatch_vkDestroyRenderPass(struct vn_dispatch_context *c
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkDestroyRenderPass(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkDestroyRenderPass_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkDestroyRenderPass_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -1440,8 +1438,9 @@ static inline void vn_dispatch_vkGetRenderAreaGranularity(struct vn_dispatch_con
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkGetRenderAreaGranularity(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkGetRenderAreaGranularity_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkGetRenderAreaGranularity_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -1469,8 +1468,8 @@ static inline void vn_dispatch_vkCreateRenderPass2(struct vn_dispatch_context *c
         vn_dispatch_debug_log(ctx, "vkCreateRenderPass2 returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkCreateRenderPass2_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkCreateRenderPass2_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }

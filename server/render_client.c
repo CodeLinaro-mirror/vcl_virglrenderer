@@ -10,6 +10,7 @@
 
 #include "render_context.h"
 #include "render_server.h"
+#include "render_virgl.h"
 #include "render_worker.h"
 
 /* There is a render_context_record for each worker.
@@ -108,15 +109,12 @@ render_client_create_context(struct render_client *client,
    struct render_server *srv = client->server;
 
    struct render_context_record *rec = calloc(1, sizeof(*rec));
-   if (!rec) {
-      *out_remote_fd = -1;
+   if (!rec)
       return false;
-   }
 
    int socket_fds[2];
    if (!render_socket_pair(socket_fds)) {
       free(rec);
-      *out_remote_fd = -1;
       return false;
    }
    int ctx_fd = socket_fds[0];
@@ -138,7 +136,6 @@ render_client_create_context(struct render_client *client,
       close(ctx_fd);
       close(remote_fd);
       free(rec);
-      *out_remote_fd = -1;
       return false;
    }
 
@@ -189,6 +186,8 @@ render_client_dispatch_create_context(struct render_client *client,
 
    int remote_fd;
    bool ok = render_client_create_context(client, &req->create_context, &remote_fd);
+   if (!ok)
+      return false;
 
    if (srv->state == RENDER_SERVER_STATE_SUBPROCESS) {
       assert(remote_fd < 0);
@@ -198,10 +197,8 @@ render_client_dispatch_create_context(struct render_client *client,
    const struct render_client_op_create_context_reply reply = {
       .ok = ok,
    };
-   if (!ok) {
-      render_socket_send_reply(&client->socket, &reply, sizeof(reply));
-      return false;
-   }
+   if (!ok)
+      return render_socket_send_reply(&client->socket, &reply, sizeof(reply));
 
    ok = render_socket_send_reply_with_fds(&client->socket, &reply, sizeof(reply),
                                           &remote_fd, 1);
@@ -223,6 +220,13 @@ render_client_dispatch_init(struct render_client *client,
                             const union render_client_op_request *req)
 {
    client->init_flags = req->init.flags;
+
+   /* init now to avoid doing it in each worker, but only when tracing is
+    * disabled because perfetto can get confused
+    */
+#ifndef ENABLE_TRACING
+   render_virgl_init(client->init_flags);
+#endif
 
    /* this makes the Vulkan loader loads ICDs */
    uint32_t unused_count;
@@ -293,6 +297,11 @@ render_client_destroy(struct render_client *client)
       assert(list_is_empty(&client->context_records));
    } else {
       render_client_clear_records(client);
+
+      /* see render_client_dispatch_init */
+#ifndef ENABLE_TRACING
+      render_virgl_fini();
+#endif
    }
 
    render_socket_fini(&client->socket);

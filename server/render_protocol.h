@@ -9,6 +9,8 @@
 #include <stdint.h>
 
 #include "virgl_resource.h"
+#include "virglrenderer.h"
+#include "virglrenderer_hw.h"
 
 /* this covers the command line options and the socket type */
 #define RENDER_SERVER_VERSION 0
@@ -148,8 +150,6 @@ struct render_context_op_create_resource_request {
 struct render_context_op_create_resource_reply {
    enum virgl_resource_fd_type fd_type;
    uint32_t map_info; /* VIRGL_RENDERER_MAP_* */
-   /* vulkan_info is set if the fd_type is VIRGL_RESOURCE_FD_OPAQUE */
-   struct virgl_resource_vulkan_info vulkan_info;
    /* followed by 1 fd if not VIRGL_RESOURCE_FD_INVALID */
 };
 
@@ -186,11 +186,15 @@ struct render_context_op_destroy_resource_request {
  */
 struct render_context_op_submit_cmd_request {
    struct render_context_op_header header;
-   uint32_t size;
+   size_t size;
    char cmd[256];
    /* if size > sizeof(cmd), followed by (size - sizeof(cmd)) bytes in another
     * message; size still must be small
     */
+};
+
+struct render_context_op_submit_cmd_reply {
+   bool ok;
 };
 
 /* Submit a fence to the context.

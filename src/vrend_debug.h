@@ -52,7 +52,6 @@ enum virgl_debug_flags {
    dbg_allow_guest_override = 1 << 16,
    dbg_feature_use = 1 << 17,
    dbg_khr = 1 << 18,
-   dbg_d3d = 1 << 19,
 };
 
 const char *vrend_get_comand_name(enum virgl_context_cmd cmd);
@@ -72,6 +71,14 @@ unsigned vrend_debug(const struct vrend_context *ctx, enum virgl_debug_flags fla
 
 void vrend_debug_add_flag(enum virgl_debug_flags flag);
 
+static inline void vrend_printf(const char *fmt, ...)
+{
+   va_list va;
+   va_start(va, fmt);
+   virgl_logv(fmt, va);
+   va_end(va);
+}
+
 #ifdef NDEBUG
 #define VREND_DEBUG_ENABLED (false)
 #else
@@ -82,7 +89,7 @@ void vrend_debug_add_flag(enum virgl_debug_flags flag);
    if (VREND_DEBUG_ENABLED && vrend_debug(ctx, flag)) \
       do { \
             vrend_print_context_name(ctx); \
-            virgl_debug(__VA_ARGS__); \
+            vrend_printf(__VA_ARGS__); \
       } while (0)
 
 #define VREND_DEBUG_EXT(flag, ctx, X) \
@@ -95,7 +102,7 @@ void vrend_debug_add_flag(enum virgl_debug_flags flag);
 #define VREND_DEBUG_NOCTX(flag, ctx, ...) \
    if (VREND_DEBUG_ENABLED && vrend_debug(ctx, flag)) \
       do { \
-            virgl_debug(__VA_ARGS__); \
+            vrend_printf(__VA_ARGS__); \
       } while (0)
 
 #endif

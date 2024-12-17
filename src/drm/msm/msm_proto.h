@@ -55,11 +55,6 @@ struct msm_shmem {
     * lost.
     */
    uint32_t async_error;
-
-   /**
-    * Counter that is incremented on global fault (see MSM_PARAM_FAULTS)
-    */
-   uint32_t global_faults;
 };
 
 #define DEFINE_CAST(parent, child)                                             \
@@ -103,17 +98,10 @@ struct msm_ccmd_rsp {
    uint32_t len;
 };
 
-#ifdef __cplusplus
-#define MSM_CCMD(_cmd, _len) {                      \
-       .cmd = MSM_CCMD_##_cmd,                      \
-       .len = (_len),                               \
-   }
-#else
 #define MSM_CCMD(_cmd, _len) (struct msm_ccmd_req){ \
        .cmd = MSM_CCMD_##_cmd,                      \
        .len = (_len),                               \
    }
-#endif
 
 /*
  * MSM_CCMD_NOP

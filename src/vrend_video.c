@@ -66,6 +66,8 @@
  */
 
 
+#include <sys/param.h>
+
 #include "virgl_video.h"
 #include "virgl_video_hw.h"
 
@@ -125,7 +127,9 @@ static struct vrend_video_codec *get_video_codec(
                                         struct vrend_video_context *ctx,
                                         uint32_t cdc_handle)
 {
-    list_for_each_entry(struct vrend_video_codec, cdc, &ctx->codecs, head) {
+    struct vrend_video_codec *cdc;
+
+    LIST_FOR_EACH_ENTRY(cdc, &ctx->codecs, head) {
         if (cdc->handle == cdc_handle)
             return cdc;
     }
@@ -137,7 +141,9 @@ static struct vrend_video_buffer *get_video_buffer(
                                         struct vrend_video_context *ctx,
                                         uint32_t buf_handle)
 {
-    list_for_each_entry(struct vrend_video_buffer, buf, &ctx->buffers, head) {
+    struct vrend_video_buffer *buf;
+
+    LIST_FOR_EACH_ENTRY(buf, &ctx->buffers, head) {
         if (buf->handle == buf_handle)
             return buf;
     }
@@ -150,7 +156,7 @@ static int sync_dmabuf_to_video_buffer(struct vrend_video_buffer *buf,
                                        const struct virgl_video_dma_buf *dmabuf)
 {
     if (!(dmabuf->flags & VIRGL_VIDEO_DMABUF_READ_ONLY)) {
-        virgl_error("%s: dmabuf is not readable\n", __func__);
+        vrend_printf("%s: dmabuf is not readable\n", __func__);
         return -1;
     }
 
@@ -160,7 +166,7 @@ static int sync_dmabuf_to_video_buffer(struct vrend_video_buffer *buf,
 
         res = vrend_renderer_ctx_res_lookup(buf->ctx->ctx, plane->res_handle);
         if (!res) {
-            virgl_error("%s: res %d not found\n", __func__, plane->res_handle);
+            vrend_printf("%s: res %d not found\n", __func__, plane->res_handle);
             continue;
         }
 
@@ -181,7 +187,7 @@ static int sync_dmabuf_to_video_buffer(struct vrend_video_buffer *buf,
         }
 
         if (EGL_NO_IMAGE_KHR == plane->egl_image) {
-            virgl_error("%s: create egl image failed\n", __func__);
+            vrend_printf("%s: create egl image failed\n", __func__);
             continue;
         }
 
@@ -196,7 +202,7 @@ static int sync_dmabuf_to_video_buffer(struct vrend_video_buffer *buf,
                                GL_TEXTURE_2D, plane->texture, 0);
 
         /* framebuffer -> vrend_video_buffer.planes[i] */
-        glBindTexture(GL_TEXTURE_2D, res->gl_id);
+        glBindTexture(GL_TEXTURE_2D, res->id);
         glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,
                             res->base.width0, res->base.height0);
     }
@@ -211,7 +217,7 @@ static int sync_video_buffer_to_dmabuf(struct vrend_video_buffer *buf,
                                        const struct virgl_video_dma_buf *dmabuf)
 {
     if (!(dmabuf->flags & VIRGL_VIDEO_DMABUF_WRITE_ONLY)) {
-        virgl_error("%s: dmabuf is not writable\n", __func__);
+        vrend_printf("%s: dmabuf is not writable\n", __func__);
         return -1;
     }
 
@@ -221,7 +227,7 @@ static int sync_video_buffer_to_dmabuf(struct vrend_video_buffer *buf,
 
         res = vrend_renderer_ctx_res_lookup(buf->ctx->ctx, plane->res_handle);
         if (!res) {
-            virgl_error("%s: res %d not found\n", __func__, plane->res_handle);
+            vrend_printf("%s: res %d not found\n", __func__, plane->res_handle);
             continue;
         }
 
@@ -242,7 +248,7 @@ static int sync_video_buffer_to_dmabuf(struct vrend_video_buffer *buf,
         }
 
         if (EGL_NO_IMAGE_KHR == plane->egl_image) {
-            virgl_error("%s: create egl image failed\n", __func__);
+            vrend_printf("%s: create egl image failed\n", __func__);
             continue;
         }
 
@@ -254,7 +260,7 @@ static int sync_video_buffer_to_dmabuf(struct vrend_video_buffer *buf,
         /* vrend_video_buffer.planes[i] -> framebuffer */
         glBindFramebuffer(GL_READ_FRAMEBUFFER, plane->framebuffer);
         glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                               GL_TEXTURE_2D, res->gl_id, 0);
+                               GL_TEXTURE_2D, res->id, 0);
 
         /* framebuffer -> texture */
         glBindTexture(GL_TEXTURE_2D, plane->texture);
@@ -316,12 +322,12 @@ static void vrend_video_encode_completed(
 
     /* sync coded data to guest */
     if (has_bit(cdc->dest_res->storage_bits, VREND_STORAGE_GL_BUFFER)) {
-        glBindBufferARB(cdc->dest_res->target, cdc->dest_res->gl_id);
+        glBindBufferARB(cdc->dest_res->target, cdc->dest_res->id);
         buf = glMapBufferRange(cdc->dest_res->target, 0,
                                cdc->dest_res->base.width0, GL_MAP_WRITE_BIT);
         for (i = 0, data_size = 0; i < num_coded_bufs &&
                     data_size < cdc->dest_res->base.width0; i++) {
-            size = MIN2(cdc->dest_res->base.width0 - data_size, coded_sizes[i]);
+            size = MIN(cdc->dest_res->base.width0 - data_size, coded_sizes[i]);
             memcpy((uint8_t *)buf + data_size, coded_bufs[i], size);
             vrend_write_to_iovec(cdc->dest_res->iov, cdc->dest_res->num_iovs,
                                  data_size, coded_bufs[i], size);
@@ -332,7 +338,7 @@ static void vrend_video_encode_completed(
         feedback.stat = VIRGL_VIDEO_ENCODE_STAT_SUCCESS;
         feedback.coded_size = data_size;
     } else {
-        virgl_warn("unexcepted coded res type\n");
+        vrend_printf("unexcepted coded res type\n");
         feedback.stat = VIRGL_VIDEO_ENCODE_STAT_FAILURE;
         feedback.coded_size = 0;
     }
@@ -340,7 +346,7 @@ static void vrend_video_encode_completed(
     /* send feedback */
     vrend_write_to_iovec(cdc->feed_res->iov, cdc->feed_res->num_iovs,
                          0, (char *)(&feedback),
-                         MIN2(cdc->feed_res->base.width0, sizeof(feedback)));
+                         MIN(cdc->feed_res->base.width0, sizeof(feedback)));
 
     cdc->dest_res = NULL;
     cdc->feed_res = NULL;
@@ -460,10 +466,8 @@ int vrend_video_create_buffer(struct vrend_video_context *ctx,
     if (buf)
         return 0;
 
-    if (format <= PIPE_FORMAT_NONE || format >= PIPE_FORMAT_COUNT){
-        virgl_error("Invalid vrend video buffer format: %d\n", format);
+    if (format <= PIPE_FORMAT_NONE || format >= PIPE_FORMAT_COUNT)
         return -1;
-    }
 
     if (!width || !height || !res_handles || !num_res)
         return -1;
@@ -559,10 +563,13 @@ struct vrend_video_context *vrend_video_create_context(struct vrend_context *ctx
 
 void vrend_video_destroy_context(struct vrend_video_context *ctx)
 {
-   list_for_each_entry_safe(struct vrend_video_codec, vcdc, &ctx->codecs, head)
+   struct vrend_video_codec *vcdc, *vcdc_tmp;
+   struct vrend_video_buffer *vbuf, *vbuf_tmp;
+
+   LIST_FOR_EACH_ENTRY_SAFE(vcdc, vcdc_tmp, &ctx->codecs, head)
       destroy_video_codec(vcdc);
 
-   list_for_each_entry_safe(struct vrend_video_buffer, vbuf, &ctx->buffers, head)
+   LIST_FOR_EACH_ENTRY_SAFE(vbuf, vbuf_tmp, &ctx->buffers, head)
       destroy_video_buffer(vbuf);
 
    free(ctx);
@@ -611,79 +618,6 @@ static void modify_h265_picture_desc(struct vrend_video_codec *cdc,
     }
 }
 
-static void modify_mpeg12_picture_desc(struct vrend_video_codec *cdc,
-                                       struct vrend_video_buffer *tgt,
-                                       struct virgl_mpeg12_picture_desc *desc)
-{
-    unsigned i;
-    struct vrend_video_buffer *vbuf;
-
-    (void)tgt;
-
-    for (i = 0; i < ARRAY_SIZE(desc->ref); i++) {
-        vbuf = get_video_buffer(cdc->ctx, desc->ref[i]);
-        desc->ref[i] = virgl_video_buffer_id(vbuf ? vbuf->buffer : NULL);
-    }
-}
-
-
-static void modify_mjpeg_picture_desc(struct vrend_video_codec *cdc,
-                                      struct vrend_video_buffer *tgt,
-                                      struct virgl_mjpeg_picture_desc *desc)
-{
-    (void)cdc;
-    (void)tgt;
-    (void)desc;
-}
-
-static void modify_vc1_picture_desc(struct vrend_video_codec *cdc,
-                                    struct vrend_video_buffer *tgt,
-                                    struct virgl_vc1_picture_desc *desc)
-{
-    unsigned i;
-    struct vrend_video_buffer *vbuf;
-
-    (void)tgt;
-
-    for (i = 0; i < ARRAY_SIZE(desc->ref); i++) {
-        vbuf = get_video_buffer(cdc->ctx, desc->ref[i]);
-        desc->ref[i] = virgl_video_buffer_id(vbuf ? vbuf->buffer : NULL);
-    }
-}
-
-static void modify_vp9_picture_desc(struct vrend_video_codec *cdc,
-                                     struct vrend_video_buffer *tgt,
-                                     struct virgl_vp9_picture_desc *desc)
-{
-    unsigned i;
-    struct vrend_video_buffer *vbuf;
-
-    (void)tgt;
-
-    for (i = 0; i < ARRAY_SIZE(desc->ref); i++) {
-        vbuf = get_video_buffer(cdc->ctx, desc->ref[i]);
-        desc->ref[i] = virgl_video_buffer_id(vbuf ? vbuf->buffer : NULL);
-    }
-}
-
-static void modify_av1_picture_desc(struct vrend_video_codec *cdc,
-                                    struct vrend_video_buffer *tgt,
-                                    struct virgl_av1_picture_desc *desc)
-{
-    unsigned i;
-    struct vrend_video_buffer *vbuf;
-
-    (void)tgt;
-
-    for (i = 0; i < ARRAY_SIZE(desc->ref); i++) {
-        vbuf = get_video_buffer(cdc->ctx, desc->ref[i]);
-        desc->ref[i] = virgl_video_buffer_id(vbuf ? vbuf->buffer : NULL);
-    }
-
-    vbuf = get_video_buffer(cdc->ctx, desc->film_grain_target);
-    desc->film_grain_target = virgl_video_buffer_id(vbuf ? vbuf->buffer : NULL);
-}
-
 static void modify_picture_desc(struct vrend_video_codec *cdc,
                                 struct vrend_video_buffer *tgt,
                                 union virgl_picture_desc *desc)
@@ -706,25 +640,6 @@ static void modify_picture_desc(struct vrend_video_codec *cdc,
     case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
         modify_h265_picture_desc(cdc, tgt, &desc->h265);
         break;
-    case PIPE_VIDEO_PROFILE_MPEG2_MAIN:
-    case PIPE_VIDEO_PROFILE_MPEG2_SIMPLE:
-        modify_mpeg12_picture_desc(cdc, tgt, &desc->mpeg12);
-        break;
-    case PIPE_VIDEO_PROFILE_JPEG_BASELINE:
-        modify_mjpeg_picture_desc(cdc, tgt, &desc->mjpeg);
-        break;
-    case PIPE_VIDEO_PROFILE_VC1_SIMPLE:
-    case PIPE_VIDEO_PROFILE_VC1_MAIN:
-    case PIPE_VIDEO_PROFILE_VC1_ADVANCED:
-        modify_vc1_picture_desc(cdc, tgt, &desc->vc1);
-        break;
-    case PIPE_VIDEO_PROFILE_VP9_PROFILE0:
-    case PIPE_VIDEO_PROFILE_VP9_PROFILE2:
-        modify_vp9_picture_desc(cdc, tgt, &desc->vp9);
-        break;
-    case PIPE_VIDEO_PROFILE_AV1_MAIN:
-        modify_av1_picture_desc(cdc, tgt, &desc->av1);
-        break;
     default:
         break;
     }
@@ -746,28 +661,26 @@ int vrend_video_decode_bitstream(struct vrend_video_context *ctx,
     struct vrend_video_buffer *tgt = get_video_buffer(ctx, tgt_handle);
     union virgl_picture_desc desc;
 
-    if (!cdc || !tgt){
-        virgl_error("video codec: %p, video buffer: %p, invalid.\n", (void *)cdc, (void *)tgt);
+    if (!cdc || !tgt)
         return -1;
-    }
 
     bs_buffers = calloc(num_buffers, sizeof(void *));
     if (!bs_buffers) {
-        virgl_error("%s: alloc bs_buffers failed\n", __func__);
+        vrend_printf("%s: alloc bs_buffers failed\n", __func__);
         return -1;
     }
 
     bs_sizes = calloc(num_buffers, sizeof(unsigned));
     if (!bs_sizes) {
-        virgl_error("%s: alloc bs_sizes failed\n", __func__);
+        vrend_printf("%s: alloc bs_sizes failed\n", __func__);
         goto err;
     }
 
     for (i = 0, num_bs = 0; i < num_buffers; i++) {
         res = vrend_renderer_ctx_res_lookup(ctx->ctx, buffer_handles[i]);
         if (!res || !res->ptr) {
-            virgl_warn("%s: bs res %d invalid or not found",
-                       __func__, buffer_handles[i]);
+            vrend_printf("%s: bs res %d invalid or not found",
+                         __func__, buffer_handles[i]);
             continue;
         }
 
@@ -780,12 +693,12 @@ int vrend_video_decode_bitstream(struct vrend_video_context *ctx,
 
     res = vrend_renderer_ctx_res_lookup(ctx->ctx, desc_handle);
     if (!res) {
-        virgl_error("%s: desc res %d not found\n", __func__, desc_handle);
+        vrend_printf("%s: desc res %d not found\n", __func__, desc_handle);
         goto err;
     }
     memset(&desc, 0, sizeof(desc));
     vrend_read_from_iovec(res->iov, res->num_iovs, 0, (char *)(&desc),
-                          MIN2(res->base.width0, sizeof(desc)));
+                          MIN(res->base.width0, sizeof(desc)));
     modify_picture_desc(cdc, tgt, &desc);
 
     err = virgl_video_decode_bitstream(cdc->codec, tgt->buffer, &desc,
@@ -816,24 +729,24 @@ int vrend_video_encode_bitstream(struct vrend_video_context *ctx,
     /* Feedback resource */
     feed_res = vrend_renderer_ctx_res_lookup(ctx->ctx, feed_handle);
     if (!feed_res) {
-        virgl_error("%s: feedback res %d not found\n", __func__, feed_handle);
+        vrend_printf("%s: feedback res %d not found\n", __func__, feed_handle);
         return -1;
     }
 
     /* Picture descriptor resource */
     desc_res = vrend_renderer_ctx_res_lookup(ctx->ctx, desc_handle);
     if (!desc_res) {
-        virgl_error("%s: desc res %d not found\n", __func__, desc_handle);
+        vrend_printf("%s: desc res %d not found\n", __func__, desc_handle);
         return -1;
     }
     memset(&desc, 0, sizeof(desc));
     vrend_read_from_iovec(desc_res->iov, desc_res->num_iovs, 0, (char *)(&desc),
-                          MIN2(desc_res->base.width0, sizeof(desc)));
+                          MIN(desc_res->base.width0, sizeof(desc)));
 
     /* Destination buffer resource. */
     dest_res = vrend_renderer_ctx_res_lookup(ctx->ctx, dest_handle);
     if (!dest_res) {
-        virgl_error("%s: dest res %d not found\n", __func__, dest_handle);
+        vrend_printf("%s: dest res %d not found\n", __func__, dest_handle);
         return -1;
     }
 

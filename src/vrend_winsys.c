@@ -23,7 +23,6 @@
  **************************************************************************/
 
 #include "vrend_winsys.h"
-#include "vrend_debug.h"
 
 #ifdef HAVE_EPOXY_GLX_H
 #include "vrend_winsys_glx.h"
@@ -78,7 +77,7 @@ int vrend_winsys_init(uint32_t flags, int preferred_fd)
       use_context = CONTEXT_EGL;
 #else
       (void)preferred_fd;
-      virgl_error("EGL is not supported on this platform\n");
+      vrend_printf( "EGL is not supported on this platform\n");
       return -1;
 #endif
    } else if (flags & VIRGL_RENDERER_USE_GLX) {
@@ -88,7 +87,7 @@ int vrend_winsys_init(uint32_t flags, int preferred_fd)
          return -1;
       use_context = CONTEXT_GLX;
 #else
-      virgl_error("GLX is not supported on this platform\n");
+      vrend_printf( "GLX is not supported on this platform\n");
       return -1;
 #endif
    }
@@ -132,18 +131,17 @@ int vrend_winsys_init_external(void *egl_display)
       use_context = CONTEXT_EGL_EXTERNAL;
 #else
    (void)egl_display;
-   virgl_error("EGL is not supported on this platform\n");
+   vrend_printf( "EGL is not supported on this platform\n");
    return -1;
 #endif
 
    return 0;
 }
 
-virgl_renderer_gl_context vrend_winsys_create_context(UNUSED struct virgl_gl_ctx_param *param)
+virgl_renderer_gl_context vrend_winsys_create_context(struct virgl_gl_ctx_param *param)
 {
 #ifdef HAVE_EPOXY_EGL_H
-   if (use_context == CONTEXT_EGL ||
-       use_context == CONTEXT_EGL_EXTERNAL)
+   if (use_context == CONTEXT_EGL)
       return virgl_egl_create_context(egl, param);
 #endif
 #ifdef HAVE_EPOXY_GLX_H
@@ -153,11 +151,10 @@ virgl_renderer_gl_context vrend_winsys_create_context(UNUSED struct virgl_gl_ctx
    return NULL;
 }
 
-void vrend_winsys_destroy_context(UNUSED virgl_renderer_gl_context ctx)
+void vrend_winsys_destroy_context(virgl_renderer_gl_context ctx)
 {
 #ifdef HAVE_EPOXY_EGL_H
-   if (use_context == CONTEXT_EGL ||
-       use_context == CONTEXT_EGL_EXTERNAL) {
+   if (use_context == CONTEXT_EGL) {
       virgl_egl_destroy_context(egl, ctx);
       return;
    }
@@ -170,15 +167,14 @@ void vrend_winsys_destroy_context(UNUSED virgl_renderer_gl_context ctx)
 #endif
 }
 
-int vrend_winsys_make_context_current(UNUSED virgl_renderer_gl_context ctx)
+int vrend_winsys_make_context_current(virgl_renderer_gl_context ctx)
 {
    int ret = -1;
 #ifdef HAVE_EPOXY_EGL_H
-   if (use_context == CONTEXT_EGL ||
-       use_context == CONTEXT_EGL_EXTERNAL) {
+   if (use_context == CONTEXT_EGL) {
       ret = virgl_egl_make_context_current(egl, ctx);
       if (ret)
-         virgl_error("%s: Error switching context: %s\n",
+         vrend_printf("%s: Error switching context: %s\n",
                       __func__, virgl_egl_error_string(eglGetError()));
    }
 #endif
@@ -186,7 +182,7 @@ int vrend_winsys_make_context_current(UNUSED virgl_renderer_gl_context ctx)
    if (use_context == CONTEXT_GLX) {
       ret = virgl_glx_make_context_current(glx_info, ctx);
       if (ret)
-         virgl_error("%s: Error switching context\n", __func__);
+         vrend_printf("%s: Error switching context\n", __func__);
    }
 #endif
    assert(!ret && "Failed to switch GL context");
@@ -206,23 +202,15 @@ int vrend_winsys_has_gl_colorspace(void)
          (use_context == CONTEXT_EGL_EXTERNAL && egl_colorspace);
 }
 
-int vrend_winsys_get_attrs_for_texture(uint32_t tex_id, uint32_t format, int *fourcc,
-                                       bool *has_dmabuf_export,
-                                       int *planes, uint64_t *modifiers)
+int vrend_winsys_get_fourcc_for_texture(uint32_t tex_id, uint32_t format, int *fourcc)
 {
 #ifdef ENABLE_GBM
    if (use_context == CONTEXT_EGL)
-      return virgl_egl_get_attrs_for_texture(egl, tex_id, format, fourcc,
-                                             has_dmabuf_export,
-                                             planes, modifiers);
+      return virgl_egl_get_fourcc_for_texture(egl, tex_id, format, fourcc);
 #else
    (void)tex_id;
    (void)format;
    (void)fourcc;
-   (void)planes;
-   (void)modifiers;
-   if (has_dmabuf_export)
-      *has_dmabuf_export = false;
 #endif
    return 0;
 }

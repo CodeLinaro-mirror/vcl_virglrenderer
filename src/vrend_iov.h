@@ -38,7 +38,7 @@ struct iovec {
 #endif
 
 struct vrend_transfer_info {
-   unsigned int level;
+   int level;
    uint32_t stride;
    uint32_t layer_stride;
    unsigned int iovec_cnt;

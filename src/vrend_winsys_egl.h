@@ -24,14 +24,10 @@
 #ifndef VIRGL_EGL_H
 #define VIRGL_EGL_H
 
-#include "virglrenderer.h"
+#include "virqnnrenderer.h"
 #include "vrend_renderer.h"
 
 #include <epoxy/egl.h>
-
-#ifdef WIN32
-#include <d3d11.h>
-#endif
 
 struct virgl_egl;
 
@@ -62,9 +58,8 @@ virgl_renderer_gl_context virgl_egl_get_current_context(struct virgl_egl *egl);
 bool virgl_has_egl_khr_gl_colorspace(struct virgl_egl *egl);
 
 #ifdef ENABLE_GBM
-int virgl_egl_get_attrs_for_texture(struct virgl_egl *egl, uint32_t tex_id, uint32_t format,
-                                    int *fourcc, bool *has_dmabuf_export,
-                                    int *planes, uint64_t *modifiers);
+int virgl_egl_get_fourcc_for_texture(struct virgl_egl *egl, uint32_t tex_id, uint32_t format,
+                                     int *fourcc);
 
 int virgl_egl_get_fd_for_texture(struct virgl_egl *egl, uint32_t tex_id, int *fd);
 
@@ -94,11 +89,4 @@ bool virgl_egl_export_signaled_fence(struct virgl_egl *egl, int *out_fd);
 bool virgl_egl_export_fence(struct virgl_egl *egl, EGLSyncKHR fence, int *out_fd);
 bool virgl_egl_different_gpu(struct virgl_egl *egl);
 const char *virgl_egl_error_string(EGLint error);
-
-#ifdef WIN32
-bool virgl_egl_win32_create_d3d11_texture2d(struct virgl_egl *egl,
-                                            const D3D11_TEXTURE2D_DESC *desc, ID3D11Texture2D **tex);
-EGLImageKHR virgl_egl_win32_image_from_d3d11_texture2d(struct virgl_egl *egl, ID3D11Texture2D *tex);
-#endif
-
 #endif

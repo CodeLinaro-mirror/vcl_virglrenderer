@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "c99_compat.h"
 #include "c11_compat.h"
 
 #include <stdint.h>
@@ -203,11 +204,7 @@ do {                       \
  * packed, to trade off performance for space.
  */
 #ifdef HAVE_FUNC_ATTRIBUTE_PACKED
-#  if defined(__MINGW32__) || defined(__MINGW64__)
-#    define PACKED __attribute__((gcc_struct,__packed__))
-#  else
-#    define PACKED __attribute__((__packed__))
-#  endif
+#define PACKED __attribute__((__packed__))
 #else
 #define PACKED
 #endif
@@ -380,10 +377,12 @@ do {                       \
  * Macro for declaring an explicit conversion operator.  Defaults to an
  * implicit conversion if C++11 is not supported.
  */
-#if __cplusplus >= 201103L
-#define EXPLICIT_CONVERSION explicit
-#elif defined(__cplusplus)
-#define EXPLICIT_CONVERSION
+#if defined(__cplusplus)
+#  if __cplusplus >= 201103L
+#    define EXPLICIT_CONVERSION explicit
+#  else
+#    define EXPLICIT_CONVERSION
+#  endif
 #endif
 
 /** Set a single bit */

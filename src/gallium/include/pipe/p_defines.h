@@ -364,9 +364,7 @@ enum pipe_flush_flags {
 #define PIPE_BARRIER_FRAMEBUFFER       (1 << 9)
 #define PIPE_BARRIER_STREAMOUT_BUFFER  (1 << 10)
 #define PIPE_BARRIER_GLOBAL_BUFFER     (1 << 11)
-#define PIPE_BARRIER_UPDATE_BUFFER     (1 << 12)
-#define PIPE_BARRIER_UPDATE_TEXTURE    (1 << 13)
-#define PIPE_BARRIER_ALL               ((1 << 14) - 1)
+#define PIPE_BARRIER_ALL               ((1 << 12) - 1)
 
 /**
  * Flags for pipe_context::texture_barrier.
@@ -522,6 +520,18 @@ enum pipe_render_cond_flag {
 enum pipe_sprite_coord_mode {
    PIPE_SPRITE_COORD_UPPER_LEFT,
    PIPE_SPRITE_COORD_LOWER_LEFT,
+};
+
+/**
+ * Texture swizzles
+ */
+enum pipe_swizzle {
+   PIPE_SWIZZLE_RED,
+   PIPE_SWIZZLE_GREEN,
+   PIPE_SWIZZLE_BLUE,
+   PIPE_SWIZZLE_ALPHA,
+   PIPE_SWIZZLE_ZERO,
+   PIPE_SWIZZLE_ONE,
 };
 
 #define PIPE_TIMEOUT_INFINITE 0xffffffffffffffffull
@@ -748,7 +758,7 @@ struct pipe_query_data_so_statistics
 struct pipe_query_data_timestamp_disjoint
 {
    uint64_t frequency;
-   bool  disjoint;
+   boolean  disjoint;
 };
 
 /**
@@ -777,7 +787,7 @@ union pipe_query_result
    /* PIPE_QUERY_OCCLUSION_PREDICATE */
    /* PIPE_QUERY_SO_OVERFLOW_PREDICATE */
    /* PIPE_QUERY_GPU_FINISHED */
-   bool b;
+   boolean b;
 
    /* PIPE_QUERY_OCCLUSION_COUNTER */
    /* PIPE_QUERY_TIMESTAMP */
@@ -816,7 +826,7 @@ struct pipe_driver_query_info
    const char *name;
    unsigned query_type; /* PIPE_QUERY_DRIVER_SPECIFIC + i */
    uint64_t max_value; /* max value that can be returned */
-   bool uses_byte_units; /* whether the result is in bytes */
+   boolean uses_byte_units; /* whether the result is in bytes */
 };
 
 #ifdef __cplusplus

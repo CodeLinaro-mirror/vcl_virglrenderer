@@ -36,11 +36,11 @@ extern "C" {
 
 struct tgsi_token;
 
-bool
+boolean
 tgsi_text_translate(
    const char *text,
    struct tgsi_token *tokens,
-   unsigned num_tokens );
+   uint num_tokens );
 
 #if defined __cplusplus
 }

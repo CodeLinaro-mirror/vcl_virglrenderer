@@ -32,8 +32,6 @@
 #include "virglrenderer_hw.h"
 #include "virgl_resource.h"
 
-#include "util/list.h"
-
 struct vrend_transfer_info;
 struct pipe_resource;
 
@@ -48,7 +46,7 @@ struct virgl_context_blob {
 
    uint32_t map_info;
 
-   struct virgl_resource_vulkan_info vulkan_info;
+   struct virgl_resource_opaque_fd_metadata opaque_fd_metadata;
 };
 
 struct virgl_context;
@@ -64,8 +62,6 @@ typedef void (*virgl_context_fence_retire)(struct virgl_context *ctx,
 struct virgl_context {
    uint32_t ctx_id;
 
-   int in_fence_fd;
-
    enum virgl_renderer_capset capset_id;
 
    /*
@@ -77,8 +73,6 @@ struct virgl_context {
     * fences.
     */
    virgl_context_fence_retire fence_retire;
-
-   bool supports_fence_sharing;
 
    void (*destroy)(struct virgl_context *ctx);
 
@@ -123,7 +117,7 @@ struct virgl_context {
    /* retire signaled fences of all queues */
    void (*retire_fences)(struct virgl_context *ctx);
 
-   /* submit a fence to the queue identified by ring_idx */
+   /* submit a fence to the queue identified by queue_id */
    int (*submit_fence)(struct virgl_context *ctx,
                        uint32_t flags,
                        uint32_t ring_idx,
@@ -155,7 +149,5 @@ virgl_context_lookup(uint32_t ctx_id);
 
 void
 virgl_context_foreach(const struct virgl_context_foreach_args *args);
-
-int virgl_context_take_in_fence_fd(struct virgl_context *ctx);
 
 #endif /* VIRGL_CONTEXT_H */

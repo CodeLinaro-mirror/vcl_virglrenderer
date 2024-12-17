@@ -155,7 +155,6 @@ static inline void strbuf_vappendf(struct vrend_strbuf *sb, const char *fmt, va_
    }
    sb->size += len;
 end:
-   va_end(cp);
    va_end(ap);
 }
 
@@ -181,7 +180,6 @@ static inline void strbuf_vfmt(struct vrend_strbuf *sb, const char *fmt, va_list
    }
    sb->size = len;
 end:
-   va_end(cp);
    va_end(ap);
 }
 
@@ -232,7 +230,7 @@ static inline void strarray_free(struct vrend_strarray *sa, bool free_strings)
 static inline void strarray_dump(struct vrend_strarray *sa)
 {
    for (int i = 0; i < sa->num_strings; i++)
-      virgl_debug("%s", sa->strings[i].buf);
+      vrend_printf("%s", sa->strings[i].buf);
 }
 
 static inline void strarray_dump_with_line_numbers(struct vrend_strarray *sa)
@@ -251,7 +249,7 @@ static inline void strarray_dump_with_line_numbers(struct vrend_strarray *sa)
             len = strlen(line);
          }
          if (len)
-            virgl_debug("%4d: %.*s\n", lineno++, len, line);
+            vrend_printf("%4d: %.*s\n", lineno++, len, line);
       } while (end);
    }
 }

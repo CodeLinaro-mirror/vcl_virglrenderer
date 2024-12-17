@@ -40,20 +40,18 @@
 #include <string.h>
 
 #include "util.h"
-#include "util/list.h"
+#include "util/u_double_list.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "vtest.h"
 #include "vtest_protocol.h"
-#include "virglrenderer.h"
-#include "vtest_server.h"
+#include "virqnnrenderer.h"
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
 
-enum vtest_client_result {
-   VTEST_CLIENT_DISCONNECTED = 1,
-   VTEST_CLIENT_ERROR_INPUT_READ,
+enum vtest_client_error {
+   VTEST_CLIENT_ERROR_INPUT_READ = 2, /* for backward compatibility */
    VTEST_CLIENT_ERROR_CONTEXT_MISSING,
    VTEST_CLIENT_ERROR_CONTEXT_FAILED,
    VTEST_CLIENT_ERROR_COMMAND_ID,
@@ -93,9 +91,7 @@ struct vtest_server
    bool use_gles;
 
    bool venus;
-
-   bool no_virgl;
-   bool use_compat_profile;
+   bool render_server;
 
    int ctx_flags;
 
@@ -131,7 +127,7 @@ static void vtest_server_close_socket(void);
 static int vtest_client_dispatch_commands(struct vtest_client *client);
 
 
-int vtest_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 #ifdef __AFL_LOOP
 while (__AFL_LOOP(1000)) {
@@ -158,8 +154,6 @@ while (__AFL_LOOP(1000)) {
    }
 }
 #endif
-
-   return 0;
 }
 
 #define OPT_NO_FORK 'f'
@@ -172,8 +166,6 @@ while (__AFL_LOOP(1000)) {
 #define OPT_VENUS 'v'
 #define OPT_RENDER_SERVER 'n'
 #define OPT_SOCKET_PATH 'p'
-#define OPT_NO_VIRGL 'g'
-#define OPT_COMPAT_PROFILE 'c'
 
 static void vtest_server_parse_args(int argc, char **argv)
 {
@@ -188,20 +180,13 @@ static void vtest_server_parse_args(int argc, char **argv)
       {"use-gles",            no_argument, NULL, OPT_USE_GLES},
       {"rendernode",          required_argument, NULL, OPT_RENDERNODE},
       {"venus",               no_argument, NULL, OPT_VENUS},
-      {"socket-path",         required_argument, NULL, OPT_SOCKET_PATH},
-      {"no-virgl",            no_argument, NULL, OPT_NO_VIRGL},
-      {"compat",              no_argument, NULL, OPT_COMPAT_PROFILE},
+      {"render-server",       no_argument, NULL, OPT_RENDER_SERVER},
+      {"socket-path",         optional_argument, NULL, OPT_SOCKET_PATH},
       {0, 0, 0, 0}
    };
 
    /* getopt_long stores the option index here. */
    int option_index = 0;
-
-#ifdef ENABLE_VENUS
-   char* ven = " [--venus]";
-#else
-   char* ven = "";
-#endif
 
    do {
       ret = getopt_long(argc, argv, "", long_options, &option_index);
@@ -232,15 +217,14 @@ static void vtest_server_parse_args(int argc, char **argv)
       case OPT_RENDERNODE:
          server.render_device = optarg;
          break;
-      case OPT_NO_VIRGL:
-         server.no_virgl = true;
-         break;
-      case OPT_COMPAT_PROFILE:
-         server.use_compat_profile = true;
-         break;
 #ifdef ENABLE_VENUS
       case OPT_VENUS:
          server.venus = true;
+         break;
+#endif
+#ifdef ENABLE_RENDER_SERVER
+      case OPT_RENDER_SERVER:
+         server.render_server = true;
          break;
 #endif
       case OPT_SOCKET_PATH:
@@ -248,10 +232,15 @@ static void vtest_server_parse_args(int argc, char **argv)
          break;
       default:
          printf("Usage: %s [--no-fork] [--no-loop-or-fork] [--multi-clients] "
-                "[--use-glx] [--use-egl-surfaceless] [--use-gles] [--no-virgl]"
+                "[--use-glx] [--use-egl-surfaceless] [--use-gles] "
                 "[--rendernode <dev>] [--socket-path <path>] "
-                "%s"
-                " [file]\n", argv[0], ven);
+#ifdef ENABLE_VENUS
+                " [--venus]"
+#endif
+#ifdef ENABLE_RENDER_SERVER
+                " [--render-server]"
+#endif
+                " [file]\n", argv[0]);
          exit(EXIT_FAILURE);
          break;
       }
@@ -265,34 +254,24 @@ static void vtest_server_parse_args(int argc, char **argv)
       server.multi_clients = false;
    }
 
-   if (!server.no_virgl) {
-      server.ctx_flags = VIRGL_RENDERER_USE_EGL;
-      if (server.use_glx) {
-         if (server.use_egl_surfaceless || server.use_gles) {
-            fprintf(stderr, "Cannot use surfaceless or GLES with GLX.\n");
-            exit(EXIT_FAILURE);
-         }
-         server.ctx_flags = VIRGL_RENDERER_USE_GLX;
-      } else {
-         if (server.use_egl_surfaceless)
-            server.ctx_flags |= VIRGL_RENDERER_USE_SURFACELESS;
-         if (server.use_gles)
-            server.ctx_flags |= VIRGL_RENDERER_USE_GLES;
+   server.ctx_flags = VIRGL_RENDERER_USE_EGL;
+   if (server.use_glx) {
+      if (server.use_egl_surfaceless || server.use_gles) {
+         fprintf(stderr, "Cannot use surfaceless or GLES with GLX.\n");
+         exit(EXIT_FAILURE);
       }
-
-      if (server.use_compat_profile) {
-         if (server.use_gles) {
-            fprintf(stderr, "Compatibility profile is not available with GLES.\n");
-            exit(EXIT_FAILURE);
-         }
-         server.ctx_flags |= VIRGL_RENDERER_COMPAT_PROFILE;
-      }
+      server.ctx_flags = VIRGL_RENDERER_USE_GLX;
    } else {
-      server.ctx_flags = VIRGL_RENDERER_NO_VIRGL;
+      if (server.use_egl_surfaceless)
+         server.ctx_flags |= VIRGL_RENDERER_USE_SURFACELESS;
+      if (server.use_gles)
+         server.ctx_flags |= VIRGL_RENDERER_USE_GLES;
    }
 
    if (server.venus) {
       server.ctx_flags |= VIRGL_RENDERER_VENUS;
+   }
+   if (server.render_server) {
       server.ctx_flags |= VIRGL_RENDERER_RENDER_SERVER;
    }
 }
@@ -303,7 +282,6 @@ static void vtest_server_getenv(void)
    server.use_egl_surfaceless = getenv("VTEST_USE_EGL_SURFACELESS") != NULL;
    server.use_gles = getenv("VTEST_USE_GLES") != NULL;
    server.render_device = getenv("VTEST_RENDERNODE");
-   server.use_compat_profile = getenv("VTEST_USE_COMPATIBILITY_PROFILE");
 }
 
 static void handler(int sig, siginfo_t *si, void *unused)
@@ -449,7 +427,7 @@ static void vtest_server_wait_clients(void)
    }
 
    if (max_fd < 0) {
-      if (!list_is_empty(&server.new_clients)) {
+      if (!LIST_IS_EMPTY(&server.new_clients)) {
          return;
       }
 
@@ -491,11 +469,10 @@ static void vtest_server_wait_clients(void)
    }
 }
 
-static const char *vtest_client_result_string(enum vtest_client_result ret)
+static const char *vtest_client_error_string(enum vtest_client_error err)
 {
-   switch (ret) {
+   switch (err) {
 #define CASE(e) case e: return #e;
-   CASE(VTEST_CLIENT_DISCONNECTED)
    CASE(VTEST_CLIENT_ERROR_INPUT_READ)
    CASE(VTEST_CLIENT_ERROR_CONTEXT_MISSING)
    CASE(VTEST_CLIENT_ERROR_CONTEXT_FAILED)
@@ -512,7 +489,7 @@ static void vtest_server_dispatch_clients(void)
    struct vtest_client *client, *tmp;
 
    LIST_FOR_EACH_ENTRY_SAFE(client, tmp, &server.active_clients, head) {
-      int ret;
+      int err;
 
       if (client->context_need_poll) {
          vtest_poll_context(client->context);
@@ -523,10 +500,10 @@ static void vtest_server_dispatch_clients(void)
          continue;
       client->in_fd_ready = false;
 
-      ret = vtest_client_dispatch_commands(client);
-      if (ret) {
-         fprintf(ret == VTEST_CLIENT_DISCONNECTED ? stdout : stderr, "client: %s\n",
-                 vtest_client_result_string(ret));
+      err = vtest_client_dispatch_commands(client);
+      if (err) {
+         fprintf(stderr, "client failed: %s\n",
+                 vtest_client_error_string(err));
          list_del(&client->head);
          list_addtail(&client->head, &server.inactive_clients);
       }
@@ -629,7 +606,7 @@ static void vtest_server_run(void)
    }
 
    while (run) {
-      const bool was_empty = list_is_empty(&server.active_clients);
+      const bool was_empty = LIST_IS_EMPTY(&server.active_clients);
       bool is_empty;
 
       vtest_server_wait_clients();
@@ -642,7 +619,7 @@ static void vtest_server_run(void)
       }
 
       /* init renderer after the first active client is added */
-      is_empty = list_is_empty(&server.active_clients);
+      is_empty = LIST_IS_EMPTY(&server.active_clients);
       if (was_empty && !is_empty) {
          int ret = vtest_init_renderer(server.multi_clients,
                                        server.ctx_flags,
@@ -711,10 +688,9 @@ static int vtest_client_dispatch_commands(struct vtest_client *client)
    uint32_t header[VTEST_HDR_SIZE];
 
    ret = client->input.read(&client->input, &header, sizeof(header));
-   if (!ret)
-      return VTEST_CLIENT_DISCONNECTED;
-   else if (ret < 0 || (size_t)ret < sizeof(header))
+   if (ret < 0 || (size_t)ret < sizeof(header)) {
       return VTEST_CLIENT_ERROR_INPUT_READ;
+   }
 
    if (!client->context) {
       /* The first command MUST be VCMD_CREATE_RENDERER */

@@ -28,8 +28,6 @@ virgl_sources = [
    'iov.c',
    'virgl_context.c',
    'virgl_context.h',
-   'virgl_fence.c',
-   'virgl_fence.h',
    'virgl_hw.h',
    'virgl_protocol.h',
    'virgl_resource.c',
@@ -61,7 +59,8 @@ vrend_sources = [
 
 virglrenderer_sources = [
    'virglrenderer.c',
-   'virglrenderer.h',
+   'virqnnrenderer.h',
+   #'virglrenderer.h',
    'virglrenderer_hw.h',
 ]
 
@@ -173,6 +172,30 @@ video_sources = [
    'vrend_video.h',
 ]
 
+
+vqnn_sources = [
+   'vqnn/vcomp_common.c',
+   'vqnn/vcomp_common.h',
+   'vqnn/vcomp_context.c',
+   'vqnn/vcomp_context.h',
+   'vqnn/vcomp_cs.c',
+   'vqnn/vcomp_cs.h',
+   'vqnn/vcomp_backend.c',
+   'vqnn/vcomp_backend.h',
+   'vqnn/vcomp_logger.c',
+   'vqnn/vcomp_logger.h',
+   'vqnn/vcomp_qnncontext.c',
+   'vqnn/vcomp_qnncontext.h',
+   'vqnn/vcomp_graph.c',
+   'vqnn/vcomp_graph.h',
+   'vqnn/vcomp_renderer.c',
+   'vqnn/vcomp_renderer.h',
+   'vqnn/vcomp_transport.c',
+   'vqnn/vcomp_transport.h',
+   'vqnn/vcomp_property.c',
+   'vqnn/vcomp_property.h'
+]
+
 virgl_depends = [
    gallium_dep,
    epoxy_dep,
@@ -187,10 +210,6 @@ endif
 
 if with_tracing == 'percetto'
    virgl_depends += [percetto_dep]
-endif
-
-if with_tracing == 'sysprof'
-   virgl_depends += [sysprof_dep]
 endif
 
 virgl_sources += vrend_sources
@@ -232,15 +251,25 @@ if with_video
   virgl_depends += [libva_dep, libvadrm_dep]
 endif
 
-if with_host_windows
-  virgl_sources += ['mman_win32.c']
+qnn_dir = ''
+if with_vqnn
+   virgl_sources += vqnn_sources
+   virgl_depends += [vqnn_dep]
+
+   cmd = run_command('sh', '-c', 'echo $QNN_SDK_PATH')
+   qnn_sdk_path = cmd.stdout().strip()
+
+   qnn_sdk_include_path = qnn_sdk_path + '/include/'
+   qnn_dir = include_directories(qnn_sdk_include_path)
 endif
+
 
 libvirgl = static_library(
    'virgl',
    virgl_sources,
-   include_directories: [inc_gallium, inc_configuration, 'venus', 'drm', 'drm/drm-uapi'],
+   include_directories: [inc_gallium, qnn_dir, inc_configuration, 'vqnn', 'venus', 'drm', 'drm/drm-uapi'],
    dependencies : virgl_depends,
+   c_args: ['-Wno-deprecated-declarations'],
 )
 
 libvirgl_inc = [
@@ -254,8 +283,8 @@ libvirgl_dep = declare_dependency(
    include_directories: libvirgl_inc
 )
 
-libvirglrenderer = library(
-   'virglrenderer',
+libvirqnnrenderer = library(
+   'virqnnrenderer',
    virglrenderer_sources,
    include_directories: [inc_gallium, inc_configuration],
    dependencies : [virgl_depends, libvirgl_dep],
@@ -266,29 +295,15 @@ libvirglrenderer = library(
 )
 
 pkg = import('pkgconfig')
-pkg.generate(libvirglrenderer,
-   description: 'virgl GL renderer',
-   extra_cflags: pkg_cflags,
+pkg.generate(libvirqnnrenderer,
+   description: 'virgl CL renderer',
    subdirs: 'virgl'
 )
 
-libvirglrenderer_dep = declare_dependency(
-   link_with: libvirglrenderer,
+libvirqnnrenderer_dep = declare_dependency(
+   link_with: libvirqnnrenderer,
    include_directories: libvirgl_inc,
    dependencies : [libvirgl_dep, gallium_dep]
 )
 
-# Version header
-version_conf = configuration_data()
-version_conf.set('VIRGL_MAJOR_VERSION', virgl_major_version)
-version_conf.set('VIRGL_MINOR_VERSION', virgl_minor_version)
-version_conf.set('VIRGL_MICRO_VERSION', virgl_micro_version)
-
-configure_file(
-  input: 'virgl-version.h.meson',
-  output: 'virgl-version.h',
-  configuration: version_conf,
-  install_dir: join_paths(get_option('includedir'), 'virgl'),
-)
-
-install_headers('virglrenderer.h', subdir : 'virgl')
+install_headers('virqnnrenderer.h', subdir : 'virgl')

@@ -136,7 +136,7 @@ u_prim_vertex_count(unsigned prim)
    return (likely(prim < PIPE_PRIM_MAX)) ? &prim_table[prim] : NULL;
 }
 
-static inline bool u_validate_pipe_prim( unsigned pipe_prim, unsigned nr )
+static inline boolean u_validate_pipe_prim( unsigned pipe_prim, unsigned nr )
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
@@ -144,18 +144,18 @@ static inline bool u_validate_pipe_prim( unsigned pipe_prim, unsigned nr )
 }
 
 
-static inline bool u_trim_pipe_prim( unsigned pipe_prim, unsigned *nr )
+static inline boolean u_trim_pipe_prim( unsigned pipe_prim, unsigned *nr )
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
    if (count && *nr >= count->min) {
       if (count->incr > 1)
          *nr -= (*nr % count->incr);
-      return true;
+      return TRUE;
    }
    else {
       *nr = 0;
-      return false;
+      return FALSE;
    }
 }
 
@@ -187,7 +187,7 @@ u_vertices_per_prim(int primitive)
    case PIPE_PRIM_QUADS:
    case PIPE_PRIM_QUAD_STRIP:
    default:
-      debug_printf("Unrecognized geometry shader primitive\n");
+      debug_printf("Unrecognized geometry shader primitive");
       return 3;
    }
 }

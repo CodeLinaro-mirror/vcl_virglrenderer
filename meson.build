@@ -23,9 +23,9 @@
 
 project(
    'virglrenderer', 'c',
-   version: '1.0.1',
+   version: '0.10.4',
    license : 'MIT',
-   meson_version : '>= 0.55',
+   meson_version : '>= 0.53',
    default_options : ['buildtype=release', 'b_ndebug=if-release',
                       'warning_level=3', 'c_std=gnu11']
 )
@@ -38,14 +38,8 @@ project(
 # 3. If the ABI has changed in an incompatible way increment the binary_age
 #    and set revision and interface_age to zero
 binary_age    = 1
-interface_age = 8
-revision      = 9
-
-virgl_version = meson.project_version()
-version_array = virgl_version.split('.')
-virgl_major_version = version_array[0].to_int()
-virgl_minor_version = version_array[1].to_int()
-virgl_micro_version = version_array[2].to_int()
+interface_age = 7
+revision      = 7
 
 cc = meson.get_compiler('c')
 
@@ -54,16 +48,12 @@ if cc.get_id() == 'gcc' and cc.version().version_compare('< 4.1')
 endif
 
 warnings = [
-   '-Werror=enum-int-mismatch',
    '-Werror=implicit-function-declaration',
    '-Werror=missing-prototypes',
-   '-Werror=pedantic',
    '-Wmissing-prototypes',
    '-Werror=incompatible-pointer-types',
    '-Werror=int-to-pointer-cast',
-   '-Werror=switch',
    '-Wno-overlength-strings',
-   '-Wno-missing-field-initializers',
 ]
 
 add_project_arguments(cc.get_supported_arguments(warnings), language : 'c')
@@ -77,7 +67,8 @@ add_project_arguments(cc.get_supported_arguments(flags), language : 'c')
 prog_python = import('python').find_installation('python3')
 
 not_found = dependency('', required: false)
-libdrm_dep = dependency('libdrm', version : '>=2.4.50', required: get_option('drm').enabled() or get_option('venus'))
+libdrm_dep = dependency('libdrm', version : '>=2.4.50', required: get_option('drm').enabled()) 
+#or get_option('venus'))
 gbm_dep = not_found
 thread_dep = dependency('threads')
 epoxy_dep = dependency('epoxy', version: '>= 1.5.4')
@@ -86,25 +77,13 @@ m_dep = cc.find_library('m', required : false)
 conf_data = configuration_data()
 conf_data.set('VERSION', meson.project_version())
 conf_data.set('_GNU_SOURCE', 1)
-# Compile unstable APIs unconditionally to avoid building two variants of
-# the lib. It's up to virglrenderer users to decide whether to use these
-# APIs. Unstable APIs may be changed or removed without a notice.
 conf_data.set('VIRGL_RENDERER_UNSTABLE_APIS', 1)
 conf_data.set('ENABLE_DRM', libdrm_dep.found())
-
-pkg_cflags = []
-
-has_attribute_cleanup = cc.compiles('''
-   void func(void *v) {}
-   int main ()
-   {
-      void *foo __attribute__((cleanup (func))) = 0;
-   }''')
 
 with_tracing = get_option('tracing')
 
 if with_tracing != 'none'
-   if not has_attribute_cleanup
+   if not cc.compiles('void f(void* v){} int main () { void *dummy __attribute__((cleanup (f))) = 0;}')
       error('Tracing requires compiler support for __attribute__((cleanup))')
    endif
 endif
@@ -122,11 +101,6 @@ if with_tracing == 'perfetto'
    conf_data.set('ENABLE_TRACING', 'TRACE_WITH_PERFETTO')
 endif
 
-if with_tracing == 'sysprof'
-   sysprof_dep = dependency('sysprof-capture-4', version: '>= 3.38.0')
-   conf_data.set('ENABLE_TRACING', 'TRACE_WITH_SYSPROF')
-endif
-
 if with_tracing == 'stderr'
    conf_data.set('ENABLE_TRACING', 'TRACE_WITH_STDERR')
 endif
@@ -139,9 +113,7 @@ if cc.has_header('dlfcn.h')
    conf_data.set('HAVE_DLFCN_H', 1)
 endif
 
-with_host_windows = host_machine.system() == 'windows'
-
-if thread_dep.found() and not with_host_windows
+if thread_dep.found() and host_machine.system() != 'windows'
   conf_data.set('HAVE_PTHREAD', 1)
   if host_machine.system() != 'netbsd' and cc.has_function(
       'pthread_setaffinity_np',
@@ -188,7 +160,7 @@ elif host_machine.endian() == 'big'
   conf_data.set('UTIL_ARCH_LITTLE_ENDIAN', 0)
   conf_data.set('UTIL_ARCH_BIG_ENDIAN', 1)
 else
-  error('It wasn\'t possible to figure out the endianess of the machine')
+  error('It wasn\'t possible to figure out the endianess of the machine')  
 endif
 
 pipe_arch = host_machine.cpu_family()
@@ -229,7 +201,6 @@ have_glx = false
 
 with_minigbm_allocation = get_option('minigbm_allocation')
 if with_minigbm_allocation
-   assert(not with_host_windows, 'minigbm allocation is not supported by windows host')
    conf_data.set('ENABLE_MINIGBM_ALLOCATION', 1)
    _gbm_ver = '18.0.0'
 else
@@ -237,17 +208,13 @@ else
 endif
 
 if with_egl
-   if cc.has_header('epoxy/egl.h', dependencies: epoxy_dep) and epoxy_dep.get_variable(pkgconfig: 'epoxy_has_egl') == '1'
-      if with_host_windows
-         have_egl = true
-      else
-         if libdrm_dep.found()
-            gbm_dep = dependency('gbm', version: '>= ' + _gbm_ver, required: require_egl)
-         endif
-         have_egl = gbm_dep.found() and cc.has_header('sys/mman.h', required: require_egl)
-         conf_data.set('ENABLE_GBM', have_egl)
+   if cc.has_header('epoxy/egl.h', dependencies: epoxy_dep) and epoxy_dep.get_pkgconfig_variable('epoxy_has_egl') == '1'
+      have_egl = true
+      conf_data.set('HAVE_EPOXY_EGL_H', 1)
+      if libdrm_dep.found()
+         gbm_dep = dependency('gbm', version: '>= ' + _gbm_ver, required: require_egl)
       endif
-      conf_data.set('HAVE_EPOXY_EGL_H', have_egl)
+      conf_data.set('ENABLE_GBM', gbm_dep.found())
    else
       assert(not require_egl,
              'egl was explicitely requested but it is not supported by epoxy')
@@ -255,13 +222,24 @@ if with_egl
 endif
 
 if with_glx
-   if cc.has_header('epoxy/glx.h', dependencies: epoxy_dep) and epoxy_dep.get_variable(pkgconfig: 'epoxy_has_glx') == '1'
+   if cc.has_header('epoxy/glx.h', dependencies: epoxy_dep) and epoxy_dep.get_pkgconfig_variable('epoxy_has_glx') == '1'
       glx_dep = dependency('x11', required: require_glx)
       have_glx = glx_dep.found()
       conf_data.set('HAVE_EPOXY_GLX_H', 1)
    else
       assert(not require_glx,
              'glx was explicitely requested but it is not supported by epoxy')
+   endif
+endif
+
+with_venus = get_option('venus-experimental')
+with_venus_validate = get_option('venus-validate')
+if with_venus
+   venus_dep = dependency('vulkan')
+   conf_data.set('ENABLE_VENUS', 1)
+
+   if with_venus_validate
+      conf_data.set('ENABLE_VENUS_VALIDATE', 1)
    endif
 endif
 
@@ -279,40 +257,21 @@ if with_check_gl_errors
    conf_data.set('CHECK_GL_ERRORS', 1)
 endif
 
-with_venus = get_option('venus')
-with_render_server = with_venus
+with_render_server = get_option('render-server')
 with_render_server_worker = get_option('render-server-worker')
 render_server_install_dir = get_option('prefix') / get_option('libexecdir')
-if with_venus
-   if with_minigbm_allocation
-      gbm_dep = dependency('gbm')
-   endif
-   venus_dep = dependency('vulkan')
-
-   conf_data.set('ENABLE_VENUS', 1)
-
-   if get_option('venus-validate')
-      conf_data.set('ENABLE_VENUS_VALIDATE', 1)
+if with_render_server
+   if not with_venus
+      error('render server makes no sense without venus currently')
    endif
 
    conf_data.set('ENABLE_RENDER_SERVER', 1)
    conf_data.set('RENDER_SERVER_EXEC_PATH',
                  '"' + render_server_install_dir / 'virgl_render_server' + '"')
-   if meson.version().version_compare('>= 0.58')
-      devenv = environment()
-      devenv.append('RENDER_SERVER_EXEC_PATH',
-                    meson.current_build_dir() / 'server/virgl_render_server')
-      meson.add_devenv(devenv)
-   else
-      warning('set RENDER_SERVER_EXEC_PATH env if not install')
-   endif
 
    if with_render_server_worker == 'process'
       conf_data.set('ENABLE_RENDER_SERVER_WORKER_PROCESS', 1)
    elif with_render_server_worker == 'thread'
-      if not has_attribute_cleanup
-         error('render-server-worker=thread requires __attribute__((cleanup))')
-      endif
       conf_data.set('ENABLE_RENDER_SERVER_WORKER_THREAD', 1)
    elif with_render_server_worker == 'minijail'
       conf_data.set('ENABLE_RENDER_SERVER_WORKER_MINIJAIL', 1)
@@ -329,6 +288,13 @@ if with_video
   libvadrm_dep = dependency('libva-drm')
 endif
 
+
+with_vqnn = get_option('vqnn')
+if with_vqnn
+   vqnn_dep = dependency('OpenCL')
+   conf_data.set('ENABLE_VQNN', 1)
+endif
+
 configure_file(input : 'config.h.meson',
                output : 'config.h',
                configuration : conf_data)
@@ -342,15 +308,8 @@ with_fuzzer = get_option('fuzzer')
 with_tests = get_option('tests')
 with_valgrind = get_option('valgrind')
 
-with_unstable_apis = get_option('unstable-apis')
-if with_unstable_apis
-  pkg_cflags += '-DVIRGL_RENDERER_UNSTABLE_APIS=1'
-endif
-
 subdir('src')
-if not with_host_windows
-   subdir('vtest')
-endif
+#subdir('vtest')
 
 if with_render_server
 subdir('server')
@@ -374,8 +333,8 @@ summary({'c_args': (' ').join(get_option('c_args')),
         'render server (DEPRECATED)': with_render_server,
         'render server worker': with_render_server ? with_render_server_worker : 'none',
         'video': with_video,
+        'vqnn': with_vqnn,
         'tests': with_tests,
         'fuzzer': with_fuzzer,
         'tracing': with_tracing,
-        'unstable-apis': with_unstable_apis,
         }, section: 'Configuration')

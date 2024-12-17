@@ -26,8 +26,6 @@ void
 vkr_context_init_instance_dispatch(struct vkr_context *ctx);
 
 void
-vkr_instance_destroy(struct vkr_context *ctx,
-                     struct vkr_instance *instance,
-                     bool destroy_vk);
+vkr_instance_destroy(struct vkr_context *ctx, struct vkr_instance *instance);
 
 #endif /* VKR_INSTANCE_H */

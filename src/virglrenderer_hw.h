@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 Chromium
+ * Copyright 2023 Qualcomm Innovation Center, Inc. All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,7 +28,9 @@
 #include "venus_hw.h"
 #include "virgl_hw.h"
 #include "drm_hw.h"
+#include "vcl_hw.h"
 
+#ifdef VIRGL_RENDERER_UNSTABLE_APIS
 enum virgl_renderer_capset {
    VIRGL_RENDERER_CAPSET_VIRGL                   = 1,
    VIRGL_RENDERER_CAPSET_VIRGL2                  = 2,
@@ -35,6 +38,8 @@ enum virgl_renderer_capset {
    VIRGL_RENDERER_CAPSET_VENUS                   = 4,
    /* 5 is reserved for cross-domain */
    VIRGL_RENDERER_CAPSET_DRM                     = 6,
+   VIRGL_RENDERER_CAPSET_VQNN                     = 8,
 };
+#endif
 
 #endif /* VIRGLRENDERER_HW_H */

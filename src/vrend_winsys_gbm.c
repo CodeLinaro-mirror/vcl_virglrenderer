@@ -33,7 +33,6 @@
 #include <string.h>
 #include <xf86drm.h>
 #include <unistd.h>
-#include <sys/mman.h>
 
 #include "util/u_math.h"
 #include "util/u_memory.h"
@@ -270,9 +269,8 @@ struct virgl_gbm *virgl_gbm_init(int fd)
    gbm->fd = -1;
    if (fd < 0) {
 #ifdef ENABLE_MINIGBM_ALLOCATION
-      gbm->device = minigbm_create_default_device(&gbm->fd);
-      if (gbm->device)
-         return gbm;
+      gbm->fd = gbm_get_default_device_fd();
+      if (gbm->fd < 0)
 #endif
       gbm->fd = rendernode_open();
       if (gbm->fd < 0)
@@ -351,7 +349,7 @@ int virgl_gbm_transfer(struct gbm_bo *bo, uint32_t direction, const struct iovec
       map_flags |= GBM_BO_TRANSFER_READ;
 
    void *addr = gbm_bo_map(bo, 0, 0, width, height, map_flags, &host_map_stride0, &map_data);
-   if (!addr || addr == MAP_FAILED)
+   if (!addr)
       return -1;
 
    guest_plane_offset = info->offset;

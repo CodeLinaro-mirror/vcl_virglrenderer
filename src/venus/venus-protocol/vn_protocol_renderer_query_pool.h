@@ -11,9 +11,6 @@
 #include "vn_protocol_renderer_structs.h"
 
 #pragma GCC diagnostic push
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
 #pragma GCC diagnostic ignored "-Wpointer-arith"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -254,8 +251,8 @@ static inline void vn_dispatch_vkCreateQueryPool(struct vn_dispatch_context *ctx
         vn_dispatch_debug_log(ctx, "vkCreateQueryPool returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkCreateQueryPool_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkCreateQueryPool_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -278,8 +275,9 @@ static inline void vn_dispatch_vkDestroyQueryPool(struct vn_dispatch_context *ct
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkDestroyQueryPool(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkDestroyQueryPool_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkDestroyQueryPool_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -307,12 +305,8 @@ static inline void vn_dispatch_vkGetQueryPoolResults(struct vn_dispatch_context 
         vn_dispatch_debug_log(ctx, "vkGetQueryPoolResults returned %d", args.ret);
 #endif
 
-    if (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) {
-        if (!vn_cs_decoder_get_fatal(ctx->decoder))
-            vn_encode_vkGetQueryPoolResults_reply(ctx->encoder, &args);
-    } else if (args.ret == VK_ERROR_DEVICE_LOST) {
-        vn_cs_decoder_set_fatal(ctx->decoder);
-    }
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkGetQueryPoolResults_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -335,8 +329,9 @@ static inline void vn_dispatch_vkResetQueryPool(struct vn_dispatch_context *ctx,
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkResetQueryPool(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkResetQueryPool_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkResetQueryPool_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }

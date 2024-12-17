@@ -33,11 +33,7 @@
 #define EGL_EGLEXT_PROTOTYPES
 #include <errno.h>
 #include <fcntl.h>
-#ifdef WIN32
-#include <d3d11.h>
-#else
 #include <poll.h>
-#endif
 #include <stdbool.h>
 #include <unistd.h>
 
@@ -47,7 +43,7 @@
 
 #include "util/u_memory.h"
 
-#include "virglrenderer.h"
+#include "virqnnrenderer.h"
 #include "vrend_winsys.h"
 #include "vrend_winsys_egl.h"
 #include "virgl_hw.h"
@@ -65,10 +61,6 @@
 #define EGL_EXT_IMAGE_DMA_BUF_IMPORT           BIT(6)
 #define EGL_EXT_IMAGE_DMA_BUF_IMPORT_MODIFIERS BIT(7)
 #define EGL_KHR_FENCE_SYNC_ANDROID             BIT(8)
-#define EGL_EXT_PLATFORM_BASE                  BIT(9)
-#define EGL_EXT_DEVICE_ENUMERATION             BIT(10)
-#define EGL_EXT_DEVICE_QUERY                   BIT(11)
-#define EGL_EXT_PLATFORM_DEVICE                BIT(12)
 
 static const struct {
    uint32_t bit;
@@ -81,19 +73,7 @@ static const struct {
    { EGL_KHR_GL_COLORSPACE, "EGL_KHR_gl_colorspace" },
    { EGL_EXT_IMAGE_DMA_BUF_IMPORT, "EGL_EXT_image_dma_buf_import" },
    { EGL_EXT_IMAGE_DMA_BUF_IMPORT_MODIFIERS, "EGL_EXT_image_dma_buf_import_modifiers" },
-   { EGL_KHR_FENCE_SYNC_ANDROID, "EGL_ANDROID_native_fence_sync"},
-   { EGL_EXT_PLATFORM_BASE, "EGL_EXT_platform_base" },
-   { EGL_EXT_DEVICE_ENUMERATION, "EGL_EXT_device_enumeration" },
-   { EGL_EXT_DEVICE_QUERY, "EGL_EXT_device_query" },
-   { EGL_EXT_PLATFORM_DEVICE, "EGL_EXT_platform_device" },
-};
-
-struct egl_funcs {
-   PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplay;
-   PFNEGLQUERYDEVICESEXTPROC eglQueryDevices;
-   PFNEGLQUERYDEVICESTRINGEXTPROC eglQueryDeviceString;
-   PFNEGLQUERYDISPLAYATTRIBEXTPROC eglQueryDisplayAttrib;
-   PFNEGLQUERYDEVICEATTRIBEXTPROC eglQueryDeviceAttrib;
+   { EGL_KHR_FENCE_SYNC_ANDROID, "EGL_ANDROID_native_fence_sync"}
 };
 
 struct virgl_egl {
@@ -106,10 +86,6 @@ struct virgl_egl {
    uint32_t extension_bits;
    EGLSyncKHR signaled_fence;
    bool different_gpu;
-   struct egl_funcs funcs;
-#ifdef WIN32
-   ID3D11Device *d3d11_device;
-#endif
 };
 
 static bool virgl_egl_has_extension_in_string(const char *haystack, const char *needle)
@@ -144,59 +120,62 @@ static bool virgl_egl_has_extension_in_string(const char *haystack, const char *
    return false;
 }
 
-static bool virgl_egl_get_funcs(struct virgl_egl *egl)
-{
-   assert(egl);
-
-   if (has_bit(egl->extension_bits, EGL_EXT_PLATFORM_BASE)) {
-      egl->funcs.eglGetPlatformDisplay =
-         (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress("eglGetPlatformDisplayEXT");
-      if (!egl->funcs.eglGetPlatformDisplay)
-         return false;
-   }
-
-   if (has_bit(egl->extension_bits, EGL_EXT_DEVICE_QUERY)) {
-      egl->funcs.eglQueryDeviceAttrib = (PFNEGLQUERYDEVICEATTRIBEXTPROC)eglGetProcAddress("eglQueryDeviceAttribEXT");
-      if (!egl->funcs.eglQueryDeviceAttrib)
-         return false;
-      egl->funcs.eglQueryDeviceString = (PFNEGLQUERYDEVICESTRINGEXTPROC)eglGetProcAddress("eglQueryDeviceStringEXT");
-      if (!egl->funcs.eglQueryDeviceString)
-         return false;
-      egl->funcs.eglQueryDisplayAttrib = (PFNEGLQUERYDISPLAYATTRIBEXTPROC)eglGetProcAddress("eglQueryDisplayAttribEXT");
-      if (!egl->funcs.eglQueryDisplayAttrib)
-         return false;
-   }
-
-   if (has_bit(egl->extension_bits, EGL_EXT_DEVICE_ENUMERATION)) {
-      egl->funcs.eglQueryDevices = (PFNEGLQUERYDEVICESEXTPROC)eglGetProcAddress ("eglQueryDevicesEXT");
-      if (!egl->funcs.eglQueryDevices)
-         return false;
-   }
-
-   return true;
-}
-
-static bool virgl_egl_add_extensions(struct virgl_egl *egl, const char *extensions)
+static int virgl_egl_init_extensions(struct virgl_egl *egl, const char *extensions)
 {
    for (uint32_t i = 0; i < ARRAY_SIZE(extensions_list); i++) {
       if (virgl_egl_has_extension_in_string(extensions, extensions_list[i].string))
          egl->extension_bits |= extensions_list[i].bit;
    }
 
-   return virgl_egl_get_funcs(egl);
-}
-
-static bool virgl_egl_check_extensions(struct virgl_egl *egl)
-{
    if (!has_bits(egl->extension_bits, EGL_KHR_SURFACELESS_CONTEXT | EGL_KHR_CREATE_CONTEXT)) {
-      virgl_error("Missing EGL_KHR_surfaceless_context or EGL_KHR_create_context\n");
-      return false;
+      vrend_printf( "Missing EGL_KHR_surfaceless_context or EGL_KHR_create_context\n");
+      return -1;
    }
 
-   return true;
+   return 0;
 }
 
 #ifdef ENABLE_MINIGBM_ALLOCATION
+
+struct egl_funcs {
+   PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplay;
+   PFNEGLQUERYDEVICESEXTPROC eglQueryDevices;
+   PFNEGLQUERYDEVICESTRINGEXTPROC eglQueryDeviceString;
+};
+
+static bool virgl_egl_get_interface(struct egl_funcs *funcs)
+{
+   const char *client_extensions = eglQueryString (NULL, EGL_EXTENSIONS);
+
+   assert(funcs);
+
+   if (virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_platform_base")) {
+      funcs->eglGetPlatformDisplay =
+         (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress ("eglGetPlatformDisplayEXT");
+   }
+
+   if (!funcs->eglGetPlatformDisplay)
+      return false;
+
+   if (!virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_platform_device"))
+      return false;
+
+   if (!virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_device_enumeration"))
+      return false;
+
+   funcs->eglQueryDevices = (PFNEGLQUERYDEVICESEXTPROC)eglGetProcAddress ("eglQueryDevicesEXT");
+   if (!funcs->eglQueryDevices)
+      return false;
+
+   if (!virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_device_query"))
+      return false;
+
+   funcs->eglQueryDeviceString = (PFNEGLQUERYDEVICESTRINGEXTPROC)eglGetProcAddress("eglQueryDeviceStringEXT");
+   if (!funcs->eglQueryDeviceString)
+      return false;
+
+  return true;
+}
 
 static EGLint virgl_egl_find_3d_device(struct gbm_device_info *dev_infos, EGLint num_devices, uint32_t flags)
 {
@@ -223,7 +202,7 @@ static EGLint virgl_egl_find_matching_device(struct gbm_device_info *dev_infos, 
    return -1;
 }
 
-static EGLDeviceEXT virgl_egl_get_device(struct virgl_egl *egl) {
+static EGLDeviceEXT virgl_egl_get_device(struct virgl_egl *egl, struct egl_funcs *funcs) {
    EGLint num_devices = 0;
    EGLint max_devices = 64;
    EGLDeviceEXT devices[64];
@@ -235,7 +214,7 @@ static EGLDeviceEXT virgl_egl_get_device(struct virgl_egl *egl) {
    if (gbm_detect_device_info(0, gbm_device_get_fd(egl->gbm->device), &gbm_dev_info) < 0)
       return EGL_NO_DEVICE_EXT;
 
-   if (!egl->funcs.eglQueryDevices(max_devices, devices, &num_devices))
+   if (!funcs->eglQueryDevices(max_devices, devices, &num_devices))
       return EGL_NO_DEVICE_EXT;
 
    /* We query EGL_DRM_DEVICE_FILE_EXT without checking EGL_EXT_device_drm extension,
@@ -243,7 +222,7 @@ static EGLDeviceEXT virgl_egl_get_device(struct virgl_egl *egl) {
     * after initializing display for every device.
     */
    for (d = 0; d < num_devices; d++) {
-       const char *dev_node = egl->funcs.eglQueryDeviceString(devices[d], EGL_DRM_DEVICE_FILE_EXT);
+       const char *dev_node = funcs->eglQueryDeviceString(devices[d], EGL_DRM_DEVICE_FILE_EXT);
        memset(&dev_infos[d], 0, sizeof(dev_infos[d]));
        if (dev_node) {
           if (gbm_detect_device_info_path(0, dev_node, dev_infos+d) < 0)
@@ -276,24 +255,21 @@ static EGLDeviceEXT virgl_egl_get_device(struct virgl_egl *egl) {
 
 static bool virgl_egl_get_display(struct virgl_egl *egl)
 {
+   struct egl_funcs funcs = { 0 };
    EGLDeviceEXT device;
 
    if (!egl->gbm)
       return false;
 
-   if (!has_bits(egl->extension_bits,
-                 EGL_EXT_PLATFORM_BASE |
-                 EGL_EXT_PLATFORM_DEVICE |
-                 EGL_EXT_DEVICE_ENUMERATION |
-                 EGL_EXT_DEVICE_QUERY))
+   if (!virgl_egl_get_interface(&funcs))
       return false;
 
-   device = virgl_egl_get_device(egl);
+   device = virgl_egl_get_device(egl, &funcs);
 
    if (device == EGL_NO_DEVICE_EXT)
       return false;
 
-   egl->egl_display = egl->funcs.eglGetPlatformDisplay(EGL_PLATFORM_DEVICE_EXT, device, NULL);
+   egl->egl_display = funcs.eglGetPlatformDisplay(EGL_PLATFORM_DEVICE_EXT, device, NULL);
    return true;
 }
 #endif /* ENABLE_MINIGBM_ALLOCATION */
@@ -323,9 +299,6 @@ struct virgl_egl *virgl_egl_init(EGLNativeDisplayType display_id, bool surfacele
    const char *extensions;
    struct virgl_egl *egl;
 
-   const char *client_extensions = eglQueryString (NULL, EGL_EXTENSIONS);
-   bool has_egl_base = virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_platform_base");
-
    egl = calloc(1, sizeof(struct virgl_egl));
    if (!egl)
       return NULL;
@@ -336,32 +309,34 @@ struct virgl_egl *virgl_egl_init(EGLNativeDisplayType display_id, bool surfacele
    if (surfaceless)
       conf_att[1] = EGL_PBUFFER_BIT;
 #ifdef ENABLE_GBM
-   if (!gbm && (!surfaceless || !has_egl_base))
+   else if (!gbm)
       goto fail;
    egl->gbm = gbm;
 #endif
 
    egl->different_gpu = false;
-   extensions = eglQueryString(NULL, EGL_EXTENSIONS);
-   if (!virgl_egl_add_extensions(egl, extensions))
-      goto fail;
+   const char *client_extensions = eglQueryString (NULL, EGL_EXTENSIONS);
 
 #ifdef ENABLE_MINIGBM_ALLOCATION
    if (virgl_egl_get_display(egl)) {
      /* Make -Wdangling-else happy. */
    } else /* Fallback to surfaceless. */
 #endif
-   if (has_egl_base) {
-      if (!has_bit(egl->extension_bits, EGL_EXT_PLATFORM_BASE))
-         goto fail;
+   if (virgl_egl_has_extension_in_string(client_extensions, "EGL_EXT_platform_base")) {
+      PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display =
+         (PFNEGLGETPLATFORMDISPLAYEXTPROC) eglGetProcAddress ("eglGetPlatformDisplayEXT");
+
+      if (!get_platform_display)
+        goto fail;
+
       if (surfaceless) {
-         egl->egl_display = egl->funcs.eglGetPlatformDisplay(EGL_PLATFORM_SURFACELESS_MESA,
-                                                             EGL_DEFAULT_DISPLAY, NULL);
+         egl->egl_display = get_platform_display (EGL_PLATFORM_SURFACELESS_MESA,
+                                                  (void *)EGL_DEFAULT_DISPLAY, NULL);
       }
 #ifdef ENABLE_GBM
       else
-         egl->egl_display = egl->funcs.eglGetPlatformDisplay(EGL_PLATFORM_GBM_KHR,
-                                                             (EGLNativeDisplayType)egl->gbm->device, NULL);
+         egl->egl_display = get_platform_display (EGL_PLATFORM_GBM_KHR,
+                                                 (EGLNativeDisplayType)egl->gbm->device, NULL);
 #endif
    } else {
 #ifdef ENABLE_GBM
@@ -392,18 +367,15 @@ struct virgl_egl *virgl_egl_init(EGLNativeDisplayType display_id, bool surfacele
 
    extensions = eglQueryString(egl->egl_display, EGL_EXTENSIONS);
 #ifdef VIRGL_EGL_DEBUG
-   virgl_debug("EGL major/minor: %d.%d\n", major, minor);
-   virgl_debug("EGL version: %s\n",
+   vrend_printf( "EGL major/minor: %d.%d\n", major, minor);
+   vrend_printf( "EGL version: %s\n",
            eglQueryString(egl->egl_display, EGL_VERSION));
-   virgl_debug("EGL vendor: %s\n",
+   vrend_printf( "EGL vendor: %s\n",
            eglQueryString(egl->egl_display, EGL_VENDOR));
-   virgl_debug("EGL extensions: %s\n", extensions);
+   vrend_printf( "EGL extensions: %s\n", extensions);
 #endif
 
-   if (!virgl_egl_add_extensions(egl, extensions))
-      goto fail;
-
-   if (!virgl_egl_check_extensions(egl))
+   if (virgl_egl_init_extensions(egl, extensions))
       goto fail;
 
    if (gles)
@@ -427,16 +399,13 @@ struct virgl_egl *virgl_egl_init(EGLNativeDisplayType display_id, bool surfacele
    eglMakeCurrent(egl->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
                   egl->egl_ctx);
 
-   if (virgl_egl_supports_fences(egl)) {
+   if (gles && virgl_egl_supports_fences(egl)) {
       egl->signaled_fence = eglCreateSyncKHR(egl->egl_display,
                                              EGL_SYNC_NATIVE_FENCE_ANDROID, NULL);
       if (!egl->signaled_fence) {
-         virgl_error("Failed to create signaled fence");
+         vrend_printf("Failed to create signaled fence");
          goto fail;
       }
-
-      /* flush to ensure a native fence object is created prior to exporting. */
-      glFlush();
    }
 
    return egl;
@@ -458,123 +427,6 @@ void virgl_egl_destroy(struct virgl_egl *egl)
    free(egl);
 }
 
-#ifdef WIN32
-static void
-debug_hresult(HRESULT hr)
-{
-   LPSTR msg = NULL;
-
-   if (SUCCEEDED(hr))
-      return;
-
-   FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                  FORMAT_MESSAGE_FROM_SYSTEM,
-                  NULL,
-                  hr,
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPSTR)&msg,
-                  0,
-                  NULL);
-
-   VREND_DEBUG(dbg_d3d, NULL, "0x%08lX: %s", hr, msg);
-
-   LocalFree(msg);
-}
-
-static void debug_d3d_texture_desc(const D3D11_TEXTURE2D_DESC *desc)
-{
-   VREND_DEBUG(dbg_d3d, NULL,
-               "D3D11_TEXTURE2D_DESC:\n"
-               "  Width: %u\n"
-               "  Height: %u\n"
-               "  MipLevels: %u\n"
-               "  ArraySize: %u\n"
-               "  Format: %u\n"
-               "  SampleDesc.Count: %u\n"
-               "  SampleDesc.Quality: %u\n"
-               "  Usage: %u\n"
-               "  BindFlags: 0x%x (%u)\n"
-               "  CPUAccessFlags: 0x%x (%u)\n"
-               "  MiscFlags: 0x%x (%u)\n",
-               desc->Width,
-               desc->Height,
-               desc->MipLevels,
-               desc->ArraySize,
-               desc->Format,
-               desc->SampleDesc.Count,
-               desc->SampleDesc.Quality,
-               desc->Usage,
-               desc->BindFlags, desc->BindFlags,
-               desc->CPUAccessFlags, desc->CPUAccessFlags,
-               desc->MiscFlags, desc->MiscFlags);
-}
-
-bool virgl_egl_win32_create_d3d11_texture2d(struct virgl_egl *egl,
-                                            const D3D11_TEXTURE2D_DESC *desc, ID3D11Texture2D **tex)
-{
-   HRESULT hr;
-
-   if (!egl || !egl->d3d11_device)
-      return false;
-
-   debug_d3d_texture_desc(desc);
-   hr = egl->d3d11_device->lpVtbl->CreateTexture2D(egl->d3d11_device, desc, NULL, tex);
-   if (FAILED(hr)) {
-      debug_hresult(hr);
-      return false;
-   }
-
-   return true;
-}
-
-EGLImageKHR
-virgl_egl_win32_image_from_d3d11_texture2d(struct virgl_egl *egl, ID3D11Texture2D *tex)
-{
-   const EGLint attribs[] = {
-      EGL_NONE
-   };
-
-   if (!egl)
-      return NULL;
-
-#ifndef EGL_D3D11_TEXTURE_ANGLE
-#define EGL_D3D11_TEXTURE_ANGLE 0x3484
-#endif
-
-   return eglCreateImageKHR(egl->egl_display, EGL_NO_CONTEXT,
-                            EGL_D3D11_TEXTURE_ANGLE, (EGLClientBuffer)tex,
-                            attribs);
-}
-#endif
-
-static void
-virgl_egl_win32_init(UNUSED struct virgl_egl *egl)
-{
-#ifdef WIN32
-   EGLDeviceEXT device;
-   const char* device_ext = NULL;
-   ID3D11Device* d3d11_device;
-
-   if (!has_bits(egl->extension_bits, EGL_EXT_DEVICE_QUERY))
-      return;
-
-   if (!egl->funcs.eglQueryDisplayAttrib(egl->egl_display, EGL_DEVICE_EXT, (EGLAttrib*)&device))
-      return;
-
-   device_ext = egl->funcs.eglQueryDeviceString(device, EGL_EXTENSIONS);
-   if (!device_ext)
-      return;
-
-   if (!virgl_egl_has_extension_in_string(device_ext, "EGL_ANGLE_device_d3d"))
-      return;
-
-   if (!egl->funcs.eglQueryDeviceAttrib(device, EGL_D3D11_DEVICE_ANGLE, (EGLAttrib*)&d3d11_device))
-      return;
-
-   egl->d3d11_device = d3d11_device;
-#endif
-}
-
 struct virgl_egl *virgl_egl_init_external(EGLDisplay egl_display)
 {
    const char *extensions;
@@ -586,52 +438,36 @@ struct virgl_egl *virgl_egl_init_external(EGLDisplay egl_display)
 
    egl->egl_display = egl_display;
 
-   extensions = eglQueryString(NULL, EGL_EXTENSIONS);
-   if (!virgl_egl_add_extensions(egl, extensions))
-      goto fail;
-
    extensions = eglQueryString(egl->egl_display, EGL_EXTENSIONS);
 #ifdef VIRGL_EGL_DEBUG
-   virgl_debug("EGL version: %s\n",
+   vrend_printf( "EGL version: %s\n",
            eglQueryString(egl->egl_display, EGL_VERSION));
-   virgl_debug("EGL vendor: %s\n",
+   vrend_printf( "EGL vendor: %s\n",
            eglQueryString(egl->egl_display, EGL_VENDOR));
-   virgl_debug("EGL extensions: %s\n", extensions);
+   vrend_printf( "EGL extensions: %s\n", extensions);
 #endif
-   if (!virgl_egl_add_extensions(egl, extensions))
-      goto fail;
 
-   if (!virgl_egl_check_extensions(egl))
-      goto fail;
+   if (virgl_egl_init_extensions(egl, extensions)) {
+      free(egl);
+      return NULL;
+   }
 
 #ifdef ENABLE_GBM
    gbm = virgl_gbm_init(-1);
    egl->gbm = gbm;
 #endif
 
-   virgl_egl_win32_init(egl);
    return egl;
-fail:
-   free(egl);
-   return NULL;
 }
 
 virgl_renderer_gl_context virgl_egl_create_context(struct virgl_egl *egl, struct virgl_gl_ctx_param *vparams)
 {
    EGLContext egl_ctx;
-
    EGLint ctx_att[] = {
       EGL_CONTEXT_CLIENT_VERSION, vparams->major_ver,
       EGL_CONTEXT_MINOR_VERSION_KHR, vparams->minor_ver,
-      EGL_NONE, EGL_NONE,
       EGL_NONE
    };
-
-   if (vparams->compat_ctx) {
-      ctx_att[4] = EGL_CONTEXT_OPENGL_PROFILE_MASK;
-      ctx_att[5] = EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT;
-   }
-
    egl_ctx = eglCreateContext(egl->egl_display,
                              egl->egl_conf,
                              vparams->shared ? eglGetCurrentContext() : EGL_NO_CONTEXT,
@@ -660,10 +496,7 @@ virgl_renderer_gl_context virgl_egl_get_current_context(UNUSED struct virgl_egl 
 }
 
 #ifdef ENABLE_GBM
-int virgl_egl_get_attrs_for_texture(struct virgl_egl *egl, uint32_t tex_id,
-                                    uint32_t format, int *fourcc,
-                                    bool *has_dmabuf_export,
-                                    int *planes, uint64_t *modifiers)
+int virgl_egl_get_fourcc_for_texture(struct virgl_egl *egl, uint32_t tex_id, uint32_t format, int *fourcc)
 {
    int ret = EINVAL;
    uint32_t gbm_format = 0;
@@ -682,22 +515,17 @@ int virgl_egl_get_attrs_for_texture(struct virgl_egl *egl, uint32_t tex_id,
    if (!image)
       return EINVAL;
 
-   success = eglExportDMABUFImageQueryMESA(egl->egl_display, image, fourcc, planes,
-                                           modifiers);
+   success = eglExportDMABUFImageQueryMESA(egl->egl_display, image, fourcc, NULL, NULL);
    if (!success)
       goto out_destroy;
    ret = 0;
  out_destroy:
    eglDestroyImageKHR(egl->egl_display, image);
-   if (has_dmabuf_export)
-      *has_dmabuf_export = true;
    return ret;
 
  fallback:
    ret = virgl_gbm_convert_format(&format, &gbm_format);
    *fourcc = (int)gbm_format;
-   if (has_dmabuf_export)
-      *has_dmabuf_export = false;
    return ret;
 }
 
@@ -817,12 +645,12 @@ void *virgl_egl_image_from_dmabuf(struct virgl_egl *egl,
             attrs[count++] = plane_offsets[i];
          }
 
-         if (drm_modifier != DRM_FORMAT_MOD_INVALID) {
+	 if (drm_modifier != DRM_FORMAT_MOD_INVALID) {
             attrs[count++] = EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT + i * 2;
             attrs[count++] = (uint32_t)drm_modifier;
             attrs[count++] = EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT + i * 2;
             attrs[count++] = (uint32_t)(drm_modifier >> 32);
-         }
+	 }
       }
    }
    attrs[count++] = EGL_NONE;
@@ -858,7 +686,7 @@ void *virgl_egl_image_from_gbm_bo(struct virgl_egl *egl, struct gbm_bo *bo)
       uint32_t handle = gbm_bo_get_handle_for_plane(bo, plane).u32;
       ret = virgl_gbm_export_fd(egl->gbm->device, handle, &fds[plane]);
       if (ret < 0) {
-         virgl_error("Failed to export plane handle\n");
+         vrend_printf( "failed to export plane handle\n");
          goto out_close;
       }
 
@@ -896,7 +724,7 @@ void *virgl_egl_aux_plane_image_from_gbm_bo(struct virgl_egl *egl, struct gbm_bo
    uint32_t handle = gbm_bo_get_handle_for_plane(bo, plane).u32;
    ret = drmPrimeHandleToFD(gbm_device_get_fd(egl->gbm->device), handle, DRM_CLOEXEC, &fd);
    if (ret < 0) {
-      virgl_error("Failed to export plane handle %d\n", errno);
+      vrend_printf("failed to export plane handle %d\n", errno);
       return NULL;
    }
 
@@ -936,24 +764,18 @@ void virgl_egl_fence_destroy(struct virgl_egl *egl, EGLSyncKHR fence) {
    eglDestroySyncKHR(egl->egl_display, fence);
 }
 
-static bool client_wait_fence(struct virgl_egl *egl, EGLSyncKHR fence, bool blocking)
-{
-   EGLint egl_result = eglClientWaitSyncKHR(egl->egl_display, fence, 0,
-                                            blocking ? EGL_FOREVER_KHR : 0);
-   if (egl_result == EGL_FALSE)
-      virgl_warn("Wait sync failed\n");
-   return egl_result != EGL_TIMEOUT_EXPIRED_KHR;
-}
-
 bool virgl_egl_client_wait_fence(struct virgl_egl *egl, EGLSyncKHR fence, bool blocking)
 {
-#ifndef _WIN32
    /* attempt to poll the native fence fd instead of eglClientWaitSyncKHR() to
     * avoid Mesa's eglapi global-display-lock synchronizing vrend's sync_thread.
     */
    int fd = -1;
    if (!virgl_egl_export_fence(egl, fence, &fd)) {
-      return client_wait_fence(egl, fence, blocking);
+      EGLint egl_result = eglClientWaitSyncKHR(egl->egl_display, fence, 0,
+                                               blocking ? EGL_FOREVER_KHR : 0);
+      if (egl_result == EGL_FALSE)
+         vrend_printf("wait sync failed\n");
+      return egl_result != EGL_TIMEOUT_EXPIRED_KHR;
    }
    assert(fd >= 0);
 
@@ -972,11 +794,8 @@ bool virgl_egl_client_wait_fence(struct virgl_egl *egl, EGLSyncKHR fence, bool b
    close(fd);
 
    if (ret < 0)
-      virgl_warn("Wait sync failed\n");
+      vrend_printf("wait sync failed\n");
    return ret != 0;
-#else
-   return client_wait_fence(egl, fence, blocking);
-#endif
 }
 
 bool virgl_egl_export_signaled_fence(struct virgl_egl *egl, int *out_fd) {

@@ -11,9 +11,6 @@
 #include "vn_protocol_renderer_structs.h"
 
 #pragma GCC diagnostic push
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
 #pragma GCC diagnostic ignored "-Wpointer-arith"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -237,8 +234,8 @@ static inline void vn_dispatch_vkCreatePrivateDataSlot(struct vn_dispatch_contex
         vn_dispatch_debug_log(ctx, "vkCreatePrivateDataSlot returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkCreatePrivateDataSlot_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkCreatePrivateDataSlot_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -261,8 +258,9 @@ static inline void vn_dispatch_vkDestroyPrivateDataSlot(struct vn_dispatch_conte
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkDestroyPrivateDataSlot(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkDestroyPrivateDataSlot_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkDestroyPrivateDataSlot_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -290,8 +288,8 @@ static inline void vn_dispatch_vkSetPrivateData(struct vn_dispatch_context *ctx,
         vn_dispatch_debug_log(ctx, "vkSetPrivateData returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkSetPrivateData_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkSetPrivateData_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -314,8 +312,9 @@ static inline void vn_dispatch_vkGetPrivateData(struct vn_dispatch_context *ctx,
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkGetPrivateData(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkGetPrivateData_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkGetPrivateData_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }

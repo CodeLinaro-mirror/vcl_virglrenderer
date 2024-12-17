@@ -79,7 +79,7 @@ vkr_dispatch_vkAllocateCommandBuffers(struct vn_dispatch_context *dispatch,
    struct object_array arr;
 
    if (!pool) {
-      vkr_context_set_fatal(ctx);
+      vkr_cs_decoder_set_fatal(&ctx->decoder);
       return;
    }
 
@@ -98,7 +98,7 @@ vkr_dispatch_vkFreeCommandBuffers(struct vn_dispatch_context *dispatch,
 
    /* args->pCommandBuffers is marked noautovalidity="true" */
    if (args->commandBufferCount && !args->pCommandBuffers) {
-      vkr_context_set_fatal(ctx);
+      vkr_cs_decoder_set_fatal(&ctx->decoder);
       return;
    }
 
@@ -121,7 +121,6 @@ static void
 vkr_dispatch_vkBeginCommandBuffer(UNUSED struct vn_dispatch_context *dispatch,
                                   struct vn_command_vkBeginCommandBuffer *args)
 {
-   TRACE_FUNC();
    struct vkr_command_buffer *cmd = vkr_command_buffer_from_handle(args->commandBuffer);
    struct vn_device_proc_table *vk = &cmd->device->proc_table;
 
@@ -133,7 +132,6 @@ static void
 vkr_dispatch_vkEndCommandBuffer(UNUSED struct vn_dispatch_context *dispatch,
                                 struct vn_command_vkEndCommandBuffer *args)
 {
-   TRACE_FUNC();
    struct vkr_command_buffer *cmd = vkr_command_buffer_from_handle(args->commandBuffer);
    struct vn_device_proc_table *vk = &cmd->device->proc_table;
 
@@ -860,193 +858,6 @@ vkr_dispatch_vkCmdPushDescriptorSetKHR(UNUSED struct vn_dispatch_context *dispat
                 args->set, args->descriptorWriteCount, args->pDescriptorWrites);
 }
 
-static void
-vkr_dispatch_vkCmdSetColorWriteEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetColorWriteEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetColorWriteEnableEXT, args, args->attachmentCount,
-                args->pColorWriteEnables);
-}
-
-static void
-vkr_dispatch_vkCmdSetVertexInputEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                    struct vn_command_vkCmdSetVertexInputEXT *args)
-{
-   VKR_CMD_CALL(CmdSetVertexInputEXT, args, args->vertexBindingDescriptionCount,
-                args->pVertexBindingDescriptions, args->vertexAttributeDescriptionCount,
-                args->pVertexAttributeDescriptions);
-}
-
-static void
-vkr_dispatch_vkCmdSetAlphaToCoverageEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetAlphaToCoverageEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetAlphaToCoverageEnableEXT, args, args->alphaToCoverageEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetAlphaToOneEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetAlphaToOneEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetAlphaToOneEnableEXT, args, args->alphaToOneEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetColorBlendAdvancedEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetColorBlendAdvancedEXT *args)
-{
-   VKR_CMD_CALL(CmdSetColorBlendAdvancedEXT, args, args->firstAttachment,
-                args->attachmentCount, args->pColorBlendAdvanced);
-}
-
-static void
-vkr_dispatch_vkCmdSetColorBlendEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetColorBlendEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetColorBlendEnableEXT, args, args->firstAttachment,
-                args->attachmentCount, args->pColorBlendEnables);
-}
-
-static void
-vkr_dispatch_vkCmdSetColorBlendEquationEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetColorBlendEquationEXT *args)
-{
-   VKR_CMD_CALL(CmdSetColorBlendEquationEXT, args, args->firstAttachment,
-                args->attachmentCount, args->pColorBlendEquations);
-}
-
-static void
-vkr_dispatch_vkCmdSetColorWriteMaskEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                       struct vn_command_vkCmdSetColorWriteMaskEXT *args)
-{
-   VKR_CMD_CALL(CmdSetColorWriteMaskEXT, args, args->firstAttachment,
-                args->attachmentCount, args->pColorWriteMasks);
-}
-
-static void
-vkr_dispatch_vkCmdSetConservativeRasterizationModeEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetConservativeRasterizationModeEXT *args)
-{
-   VKR_CMD_CALL(CmdSetConservativeRasterizationModeEXT, args,
-                args->conservativeRasterizationMode);
-}
-
-static void
-vkr_dispatch_vkCmdSetDepthClampEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetDepthClampEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetDepthClampEnableEXT, args, args->depthClampEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetDepthClipEnableEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                        struct vn_command_vkCmdSetDepthClipEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetDepthClipEnableEXT, args, args->depthClipEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetDepthClipNegativeOneToOneEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetDepthClipNegativeOneToOneEXT *args)
-{
-   VKR_CMD_CALL(CmdSetDepthClipNegativeOneToOneEXT, args, args->negativeOneToOne);
-}
-
-static void
-vkr_dispatch_vkCmdSetExtraPrimitiveOverestimationSizeEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetExtraPrimitiveOverestimationSizeEXT *args)
-{
-   VKR_CMD_CALL(CmdSetExtraPrimitiveOverestimationSizeEXT, args,
-                args->extraPrimitiveOverestimationSize);
-}
-
-static void
-vkr_dispatch_vkCmdSetLineRasterizationModeEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetLineRasterizationModeEXT *args)
-{
-   VKR_CMD_CALL(CmdSetLineRasterizationModeEXT, args, args->lineRasterizationMode);
-}
-
-static void
-vkr_dispatch_vkCmdSetLineStippleEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetLineStippleEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetLineStippleEnableEXT, args, args->stippledLineEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetLogicOpEnableEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                      struct vn_command_vkCmdSetLogicOpEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetLogicOpEnableEXT, args, args->logicOpEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetPolygonModeEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                    struct vn_command_vkCmdSetPolygonModeEXT *args)
-{
-   VKR_CMD_CALL(CmdSetPolygonModeEXT, args, args->polygonMode);
-}
-
-static void
-vkr_dispatch_vkCmdSetProvokingVertexModeEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetProvokingVertexModeEXT *args)
-{
-   VKR_CMD_CALL(CmdSetProvokingVertexModeEXT, args, args->provokingVertexMode);
-}
-
-static void
-vkr_dispatch_vkCmdSetRasterizationSamplesEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetRasterizationSamplesEXT *args)
-{
-   VKR_CMD_CALL(CmdSetRasterizationSamplesEXT, args, args->rasterizationSamples);
-}
-
-static void
-vkr_dispatch_vkCmdSetRasterizationStreamEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetRasterizationStreamEXT *args)
-{
-   VKR_CMD_CALL(CmdSetRasterizationStreamEXT, args, args->rasterizationStream);
-}
-
-static void
-vkr_dispatch_vkCmdSetSampleLocationsEnableEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetSampleLocationsEnableEXT *args)
-{
-   VKR_CMD_CALL(CmdSetSampleLocationsEnableEXT, args, args->sampleLocationsEnable);
-}
-
-static void
-vkr_dispatch_vkCmdSetSampleMaskEXT(UNUSED struct vn_dispatch_context *dispatch,
-                                   struct vn_command_vkCmdSetSampleMaskEXT *args)
-{
-   VKR_CMD_CALL(CmdSetSampleMaskEXT, args, args->samples, args->pSampleMask);
-}
-
-static void
-vkr_dispatch_vkCmdSetTessellationDomainOriginEXT(
-   UNUSED struct vn_dispatch_context *dispatch,
-   struct vn_command_vkCmdSetTessellationDomainOriginEXT *args)
-{
-   VKR_CMD_CALL(CmdSetTessellationDomainOriginEXT, args, args->domainOrigin);
-}
-
 void
 vkr_context_init_command_pool_dispatch(struct vkr_context *ctx)
 {
@@ -1191,51 +1002,4 @@ vkr_context_init_command_buffer_dispatch(struct vkr_context *ctx)
    /* VK_KHR_push_descriptor */
    dispatch->dispatch_vkCmdPushDescriptorSetKHR = vkr_dispatch_vkCmdPushDescriptorSetKHR;
    dispatch->dispatch_vkCmdPushDescriptorSetWithTemplateKHR = NULL;
-
-   /* VK_EXT_color_write_enable */
-   dispatch->dispatch_vkCmdSetColorWriteEnableEXT =
-      vkr_dispatch_vkCmdSetColorWriteEnableEXT;
-
-   /* VK_EXT_vertex_input_dynamic_state */
-   dispatch->dispatch_vkCmdSetVertexInputEXT = vkr_dispatch_vkCmdSetVertexInputEXT;
-
-   /* VK_EXT_extended_dynamic_state3 */
-   dispatch->dispatch_vkCmdSetAlphaToCoverageEnableEXT =
-      vkr_dispatch_vkCmdSetAlphaToCoverageEnableEXT;
-   dispatch->dispatch_vkCmdSetAlphaToOneEnableEXT =
-      vkr_dispatch_vkCmdSetAlphaToOneEnableEXT;
-   dispatch->dispatch_vkCmdSetColorBlendAdvancedEXT =
-      vkr_dispatch_vkCmdSetColorBlendAdvancedEXT;
-   dispatch->dispatch_vkCmdSetColorBlendEnableEXT =
-      vkr_dispatch_vkCmdSetColorBlendEnableEXT;
-   dispatch->dispatch_vkCmdSetColorBlendEquationEXT =
-      vkr_dispatch_vkCmdSetColorBlendEquationEXT;
-   dispatch->dispatch_vkCmdSetColorWriteMaskEXT = vkr_dispatch_vkCmdSetColorWriteMaskEXT;
-   dispatch->dispatch_vkCmdSetConservativeRasterizationModeEXT =
-      vkr_dispatch_vkCmdSetConservativeRasterizationModeEXT;
-   dispatch->dispatch_vkCmdSetDepthClampEnableEXT =
-      vkr_dispatch_vkCmdSetDepthClampEnableEXT;
-   dispatch->dispatch_vkCmdSetDepthClipEnableEXT =
-      vkr_dispatch_vkCmdSetDepthClipEnableEXT;
-   dispatch->dispatch_vkCmdSetDepthClipNegativeOneToOneEXT =
-      vkr_dispatch_vkCmdSetDepthClipNegativeOneToOneEXT;
-   dispatch->dispatch_vkCmdSetExtraPrimitiveOverestimationSizeEXT =
-      vkr_dispatch_vkCmdSetExtraPrimitiveOverestimationSizeEXT;
-   dispatch->dispatch_vkCmdSetLineRasterizationModeEXT =
-      vkr_dispatch_vkCmdSetLineRasterizationModeEXT;
-   dispatch->dispatch_vkCmdSetLineStippleEnableEXT =
-      vkr_dispatch_vkCmdSetLineStippleEnableEXT;
-   dispatch->dispatch_vkCmdSetLogicOpEnableEXT = vkr_dispatch_vkCmdSetLogicOpEnableEXT;
-   dispatch->dispatch_vkCmdSetPolygonModeEXT = vkr_dispatch_vkCmdSetPolygonModeEXT;
-   dispatch->dispatch_vkCmdSetProvokingVertexModeEXT =
-      vkr_dispatch_vkCmdSetProvokingVertexModeEXT;
-   dispatch->dispatch_vkCmdSetRasterizationSamplesEXT =
-      vkr_dispatch_vkCmdSetRasterizationSamplesEXT;
-   dispatch->dispatch_vkCmdSetRasterizationStreamEXT =
-      vkr_dispatch_vkCmdSetRasterizationStreamEXT;
-   dispatch->dispatch_vkCmdSetSampleLocationsEnableEXT =
-      vkr_dispatch_vkCmdSetSampleLocationsEnableEXT;
-   dispatch->dispatch_vkCmdSetSampleMaskEXT = vkr_dispatch_vkCmdSetSampleMaskEXT;
-   dispatch->dispatch_vkCmdSetTessellationDomainOriginEXT =
-      vkr_dispatch_vkCmdSetTessellationDomainOriginEXT;
 }

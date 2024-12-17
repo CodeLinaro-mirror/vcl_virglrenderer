@@ -29,7 +29,7 @@ virgl_fuzzer = executable(
    'virgl_fuzzer.c',
    c_args : [ '-fsanitize=fuzzer' ],
    link_args : [ '-fsanitize=fuzzer' ],
-   dependencies : [libvirglrenderer_dep, gallium_dep, epoxy_dep]
+   dependencies : [libvirqnnrenderer_dep, gallium_dep, epoxy_dep]
 )
 
 if with_drm
@@ -38,6 +38,6 @@ if with_drm
       'virgl_drm_fuzzer.c',
       c_args : [ '-fsanitize=fuzzer' ],
       link_args : [ '-fsanitize=fuzzer' ],
-      dependencies : [libvirglrenderer_dep]
+      dependencies : [libvirqnnrenderer_dep]
    )
 endif

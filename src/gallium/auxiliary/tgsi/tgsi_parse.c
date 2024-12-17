@@ -55,7 +55,7 @@ tgsi_parse_free(
 {
 }
 
-bool
+boolean
 tgsi_parse_end_of_tokens(
    struct tgsi_parse_context *ctx )
 {
@@ -83,28 +83,25 @@ copy_token(void *dst, const void *src)
 /**
  * Get next 4-byte token, return it at address specified by 'token'
  */
-static bool
+static void
 next_token(
    struct tgsi_parse_context *ctx,
    void *token )
 {
-   if (tgsi_parse_end_of_tokens( ctx ) )
-      return false;
+   assert( !tgsi_parse_end_of_tokens( ctx ) );
    copy_token(token, &ctx->Tokens[ctx->Position]);
    ctx->Position++;
-   return true;
 }
 
 
-bool
+void
 tgsi_parse_token(
    struct tgsi_parse_context *ctx )
 {
    struct tgsi_token token;
    unsigned i;
 
-   if (!next_token( ctx, &token ))
-      return false;
+   next_token( ctx, &token );
 
    switch( token.Type ) {
    case TGSI_TOKEN_TYPE_DECLARATION:
@@ -114,37 +111,30 @@ tgsi_parse_token(
       memset(decl, 0, sizeof *decl);
       copy_token(&decl->Declaration, &token);
 
-      if (!next_token( ctx, &decl->Range ))
-         return false;
+      next_token( ctx, &decl->Range );
 
       if (decl->Declaration.Dimension) {
-         if (!next_token(ctx, &decl->Dim))
-            return false;
+         next_token(ctx, &decl->Dim);
       }
 
       if (decl->Declaration.Interpolate) {
-         if (!next_token( ctx, &decl->Interp ))
-            return false;
+         next_token( ctx, &decl->Interp );
       }
 
       if (decl->Declaration.Semantic) {
-         if (!next_token( ctx, &decl->Semantic ))
-            return false;
+         next_token( ctx, &decl->Semantic );
       }
 
       if (decl->Declaration.File == TGSI_FILE_IMAGE) {
-         if (!next_token(ctx, &decl->Image))
-            return false;
+         next_token(ctx, &decl->Image);
       }
 
       if (decl->Declaration.File == TGSI_FILE_SAMPLER_VIEW) {
-         if (!next_token(ctx, &decl->SamplerView))
-            return false;
+         next_token(ctx, &decl->SamplerView);
       }
 
       if (decl->Declaration.Array) {
-         if (!next_token(ctx, &decl->Array))
-            return false;
+         next_token(ctx, &decl->Array);
       }
 
       break;
@@ -153,43 +143,37 @@ tgsi_parse_token(
    case TGSI_TOKEN_TYPE_IMMEDIATE:
    {
       struct tgsi_full_immediate *imm = &ctx->FullToken.FullImmediate;
-      unsigned imm_count;
+      uint imm_count;
 
       memset(imm, 0, sizeof *imm);
       copy_token(&imm->Immediate, &token);
 
       imm_count = imm->Immediate.NrTokens - 1;
 
-      if (imm_count > TGSI_MAX_IMMEDIATE_PER_SLOT)
-         return false;
-
       switch (imm->Immediate.DataType) {
       case TGSI_IMM_FLOAT32:
       case TGSI_IMM_FLOAT64:
          for (i = 0; i < imm_count; i++) {
-            if (!next_token(ctx, &imm->u[i].Float))
-               return false;
+            next_token(ctx, &imm->u[i].Float);
          }
          break;
 
       case TGSI_IMM_UINT32:
       case TGSI_IMM_UINT64:
          for (i = 0; i < imm_count; i++) {
-            if (!next_token(ctx, &imm->u[i].Uint))
-               return false;
+            next_token(ctx, &imm->u[i].Uint);
          }
          break;
 
       case TGSI_IMM_INT32:
       case TGSI_IMM_INT64:
          for (i = 0; i < imm_count; i++) {
-            if (!next_token(ctx, &imm->u[i].Int))
-               return false;
+            next_token(ctx, &imm->u[i].Int);
          }
          break;
 
       default:
-         return false;
+         assert( 0 );
       }
 
       break;
@@ -203,79 +187,61 @@ tgsi_parse_token(
       copy_token(&inst->Instruction, &token);
 
       if (inst->Instruction.Label) {
-         if (!next_token( ctx, &inst->Label))
-            return false;
+         next_token( ctx, &inst->Label);
       }
 
       if (inst->Instruction.Texture) {
-         if (!next_token( ctx, &inst->Texture))
-            return false;
-         if (inst->Texture.NumOffsets > TGSI_FULL_MAX_TEX_OFFSETS)
-            return false;
+         next_token( ctx, &inst->Texture);
          for (i = 0; i < inst->Texture.NumOffsets; i++) {
-            if (!next_token( ctx, &inst->TexOffsets[i] ))
-               return false;
+            next_token( ctx, &inst->TexOffsets[i] );
          }
       }
 
       if (inst->Instruction.Memory) {
-         if (!next_token(ctx, &inst->Memory))
-            return false;
+         next_token(ctx, &inst->Memory);
       }
 
-      if ( inst->Instruction.NumDstRegs > TGSI_FULL_MAX_DST_REGISTERS )
-          return false;
+      assert( inst->Instruction.NumDstRegs <= TGSI_FULL_MAX_DST_REGISTERS );
 
       for (i = 0; i < inst->Instruction.NumDstRegs; i++) {
 
-         if (!next_token( ctx, &inst->Dst[i].Register ))
-            return false;
+         next_token( ctx, &inst->Dst[i].Register );
 
          if (inst->Dst[i].Register.Indirect)
-            if (!next_token( ctx, &inst->Dst[i].Indirect ))
-               return false;
+            next_token( ctx, &inst->Dst[i].Indirect );
 
          if (inst->Dst[i].Register.Dimension) {
-            if (!next_token( ctx, &inst->Dst[i].Dimension ))
-               return false;
+            next_token( ctx, &inst->Dst[i].Dimension );
 
             /*
              * No support for multi-dimensional addressing.
              */
-            if ( inst->Dst[i].Dimension.Dimension )
-               return false;
+            assert( !inst->Dst[i].Dimension.Dimension );
 
             if (inst->Dst[i].Dimension.Indirect)
-               if (!next_token( ctx, &inst->Dst[i].DimIndirect ))
-                  return false;
+               next_token( ctx, &inst->Dst[i].DimIndirect );
          }
       }
 
-      if (inst->Instruction.NumSrcRegs > TGSI_FULL_MAX_SRC_REGISTERS )
-          return false;
+      assert( inst->Instruction.NumSrcRegs <= TGSI_FULL_MAX_SRC_REGISTERS );
 
       for (i = 0; i < inst->Instruction.NumSrcRegs; i++) {
 
-         if (!next_token( ctx, &inst->Src[i].Register ))
-            return false;
+         next_token( ctx, &inst->Src[i].Register );
 
          if (inst->Src[i].Register.Indirect)
-            if (!next_token( ctx, &inst->Src[i].Indirect ))
-               return false;
+            next_token( ctx, &inst->Src[i].Indirect );
 
          if (inst->Src[i].Register.Dimension) {
-            if (!next_token( ctx, &inst->Src[i].Dimension ))
-               return false;
+            next_token( ctx, &inst->Src[i].Dimension );
 
             /*
              * No support for multi-dimensional addressing.
              */
-            if ( inst->Src[i].Dimension.Dimension )
-               return false;
+            assert( !inst->Src[i].Dimension.Dimension );
 
             if (inst->Src[i].Dimension.Indirect)
-               if (!next_token( ctx, &inst->Src[i].DimIndirect ))
-                  return false;
+               next_token( ctx, &inst->Src[i].DimIndirect );
          }
       }
 
@@ -285,28 +251,22 @@ tgsi_parse_token(
    case TGSI_TOKEN_TYPE_PROPERTY:
    {
       struct tgsi_full_property *prop = &ctx->FullToken.FullProperty;
-      unsigned prop_count;
+      uint prop_count;
 
       memset(prop, 0, sizeof *prop);
       copy_token(&prop->Property, &token);
 
       prop_count = prop->Property.NrTokens - 1;
-
-      if (prop_count > TGSI_MAX_PROPERTY_DATA_SLOTS)
-         return false;
-
       for (i = 0; i < prop_count; i++) {
-         if (!next_token(ctx, &prop->u[i]))
-            return false;
+         next_token(ctx, &prop->u[i]);
       }
 
       break;
    }
 
    default:
-      return false;
+      assert( 0 );
    }
-   return true;
 }
 
 

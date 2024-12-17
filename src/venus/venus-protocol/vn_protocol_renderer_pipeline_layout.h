@@ -11,9 +11,6 @@
 #include "vn_protocol_renderer_structs.h"
 
 #pragma GCC diagnostic push
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 12
-#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
 #pragma GCC diagnostic ignored "-Wpointer-arith"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -54,7 +51,7 @@ vn_decode_VkPipelineLayoutCreateInfo_self_temp(struct vn_cs_decoder *dec, VkPipe
     vn_decode_uint32_t(dec, &val->setLayoutCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->setLayoutCount);
-        val->pSetLayouts = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pSetLayouts), iter_count);
+        val->pSetLayouts = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pSetLayouts) * iter_count);
         if (!val->pSetLayouts) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkDescriptorSetLayout_lookup(dec, &((VkDescriptorSetLayout *)val->pSetLayouts)[i]);
@@ -65,7 +62,7 @@ vn_decode_VkPipelineLayoutCreateInfo_self_temp(struct vn_cs_decoder *dec, VkPipe
     vn_decode_uint32_t(dec, &val->pushConstantRangeCount);
     if (vn_peek_array_size(dec)) {
         const uint32_t iter_count = vn_decode_array_size(dec, val->pushConstantRangeCount);
-        val->pPushConstantRanges = vn_cs_decoder_alloc_temp_array(dec, sizeof(*val->pPushConstantRanges), iter_count);
+        val->pPushConstantRanges = vn_cs_decoder_alloc_temp(dec, sizeof(*val->pPushConstantRanges) * iter_count);
         if (!val->pPushConstantRanges) return;
         for (uint32_t i = 0; i < iter_count; i++)
             vn_decode_VkPushConstantRange_temp(dec, &((VkPushConstantRange *)val->pPushConstantRanges)[i]);
@@ -221,8 +218,8 @@ static inline void vn_dispatch_vkCreatePipelineLayout(struct vn_dispatch_context
         vn_dispatch_debug_log(ctx, "vkCreatePipelineLayout returned %d", args.ret);
 #endif
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkCreatePipelineLayout_reply(ctx->encoder, &args);
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkCreatePipelineLayout_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }
@@ -245,8 +242,9 @@ static inline void vn_dispatch_vkDestroyPipelineLayout(struct vn_dispatch_contex
     if (!vn_cs_decoder_get_fatal(ctx->decoder))
         ctx->dispatch_vkDestroyPipelineLayout(ctx, &args);
 
-    if ((flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT) && !vn_cs_decoder_get_fatal(ctx->decoder))
-        vn_encode_vkDestroyPipelineLayout_reply(ctx->encoder, &args);
+
+    if (!vn_cs_decoder_get_fatal(ctx->decoder) && (flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT))
+       vn_encode_vkDestroyPipelineLayout_reply(ctx->encoder, &args);
 
     vn_cs_decoder_reset_temp_pool(ctx->decoder);
 }

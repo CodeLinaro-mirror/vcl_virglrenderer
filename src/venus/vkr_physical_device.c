@@ -6,62 +6,45 @@
 #include "vkr_physical_device.h"
 
 #include "venus-protocol/vn_protocol_renderer_device.h"
+#include "vrend_winsys_gbm.h"
 
 #include "vkr_context.h"
 #include "vkr_device.h"
 #include "vkr_instance.h"
 
-#ifdef ENABLE_MINIGBM_ALLOCATION
-#include <gbm.h>
-#ifdef MINIGBM
-#include <minigbm/minigbm_helpers.h>
-#else
-#define minigbm_create_default_device(out_fd) NULL
-#endif /* MINIGBM */
-
-/* TODO remove minigbm allocation fallback after requiring exporting from raw mappable
- * device memory via a new Vulkan extension
- */
+/* TODO open render node and create gbm_device per vkr_physical_device */
 static struct gbm_device *vkr_gbm_dev;
 
 static void
 vkr_gbm_device_init_once(void)
 {
-   UNUSED int gbm_fd;
-   vkr_gbm_dev = minigbm_create_default_device(&gbm_fd);
-   if (!vkr_gbm_dev) {
-      vkr_log("minigbm_create_default_device failed");
+   struct virgl_gbm *vkr_gbm = virgl_gbm_init(-1);
+   if (!vkr_gbm) {
+      vkr_log("virgl_gbm_init failed");
       exit(-1);
    }
+
+   vkr_gbm_dev = vkr_gbm->device;
 }
 
-static inline void *
-vkr_physical_device_get_gbm_device(void)
+static struct gbm_device *
+vkr_physical_device_get_gbm_device(UNUSED struct vkr_physical_device *physical_dev)
 {
    static once_flag gbm_once_flag = ONCE_FLAG_INIT;
    call_once(&gbm_once_flag, vkr_gbm_device_init_once);
-   return (void *)vkr_gbm_dev;
+
+   return vkr_gbm_dev;
 }
-
-#else
-
-static inline void *
-vkr_physical_device_get_gbm_device(void)
-{
-   return NULL;
-}
-
-#endif /* ENABLE_MINIGBM_ALLOCATION */
 
 void
 vkr_physical_device_destroy(struct vkr_context *ctx,
                             struct vkr_physical_device *physical_dev)
 {
-   list_for_each_entry_safe (struct vkr_device, dev, &physical_dev->devices, base.track_head)
-      vkr_device_destroy(ctx, dev, false);
+   struct vkr_device *dev, *tmp;
+   LIST_FOR_EACH_ENTRY_SAFE (dev, tmp, &physical_dev->devices, base.track_head)
+      vkr_device_destroy(ctx, dev);
 
    free(physical_dev->extensions);
-   free(physical_dev->queue_family_properties);
 
    vkr_context_remove_object(ctx, &physical_dev->base);
 }
@@ -105,11 +88,7 @@ vkr_instance_lookup_physical_device(struct vkr_instance *instance,
                                     VkPhysicalDevice handle)
 {
    for (uint32_t i = 0; i < instance->physical_device_count; i++) {
-      /* VkPhysicalDevice handles are fine to contain duplicates. Client side always
-       * returns unique handles upon the first enumeration call (either physical deivces
-       * or groups). The other enumeration call later can return duplicate handles based
-       * on this lookup, which is fine since still matching the Vulkan driver.
-       */
+      /* XXX this assumes VkPhysicalDevice handles are unique */
       if (instance->physical_device_handles[i] == handle)
          return instance->physical_devices[i];
    }
@@ -192,7 +171,7 @@ vkr_physical_device_init_memory_properties(struct vkr_physical_device *physical_
 
    if (!physical_dev->is_dma_buf_fd_export_supported &&
        !physical_dev->is_opaque_fd_export_supported)
-      physical_dev->gbm_device = vkr_physical_device_get_gbm_device();
+      physical_dev->gbm_device = vkr_physical_device_get_gbm_device(physical_dev);
 }
 
 static void
@@ -276,25 +255,6 @@ vkr_physical_device_init_proc_table(struct vkr_physical_device *physical_dev,
 }
 
 static void
-vkr_physical_device_init_queue_family_properties(struct vkr_physical_device *physical_dev)
-{
-   VkPhysicalDevice handle = physical_dev->base.handle.physical_device;
-
-   VkQueueFamilyProperties *props;
-   uint32_t count;
-   vkGetPhysicalDeviceQueueFamilyProperties(handle, &count, NULL);
-
-   props = malloc(sizeof(*props) * count);
-   if (!props)
-      return;
-
-   vkGetPhysicalDeviceQueueFamilyProperties(handle, &count, props);
-
-   physical_dev->queue_family_property_count = count;
-   physical_dev->queue_family_properties = props;
-}
-
-static void
 vkr_dispatch_vkEnumeratePhysicalDevices(struct vn_dispatch_context *dispatch,
                                         struct vn_command_vkEnumeratePhysicalDevices *args)
 {
@@ -302,7 +262,7 @@ vkr_dispatch_vkEnumeratePhysicalDevices(struct vn_dispatch_context *dispatch,
 
    struct vkr_instance *instance = vkr_instance_from_handle(args->instance);
    if (instance != ctx->instance) {
-      vkr_context_set_fatal(ctx);
+      vkr_cs_decoder_set_fatal(&ctx->decoder);
       return;
    }
 
@@ -333,7 +293,7 @@ vkr_dispatch_vkEnumeratePhysicalDevices(struct vn_dispatch_context *dispatch,
 
       if (physical_dev) {
          if (physical_dev->base.id != id) {
-            vkr_context_set_fatal(ctx);
+            vkr_cs_decoder_set_fatal(&ctx->decoder);
             break;
          }
          continue;
@@ -358,7 +318,6 @@ vkr_dispatch_vkEnumeratePhysicalDevices(struct vn_dispatch_context *dispatch,
       vkr_physical_device_init_extensions(physical_dev, instance);
       vkr_physical_device_init_memory_properties(physical_dev);
       vkr_physical_device_init_id_properties(physical_dev);
-      vkr_physical_device_init_queue_family_properties(physical_dev);
 
       list_inithead(&physical_dev->devices);
 
@@ -373,7 +332,6 @@ vkr_dispatch_vkEnumeratePhysicalDevices(struct vn_dispatch_context *dispatch,
          if (!physical_dev)
             break;
          free(physical_dev->extensions);
-         free(physical_dev->queue_family_properties);
          vkr_context_remove_object(ctx, &physical_dev->base);
          instance->physical_devices[i] = NULL;
       }
@@ -389,7 +347,7 @@ vkr_dispatch_vkEnumeratePhysicalDeviceGroups(
 
    struct vkr_instance *instance = vkr_instance_from_handle(args->instance);
    if (instance != ctx->instance) {
-      vkr_context_set_fatal(ctx);
+      vkr_cs_decoder_set_fatal(&ctx->decoder);
       return;
    }
 
@@ -422,7 +380,7 @@ vkr_dispatch_vkEnumeratePhysicalDeviceGroups(
    if (!orig_props)
       return;
 
-   /* TODO avoid requiring venus driver to call vkEnumeratePhysicalDevices first */
+   /* XXX this assumes vkEnumeratePhysicalDevices is called first */
    /* replace VkPhysicalDevice handles by object ids */
    for (uint32_t i = 0; i < *args->pPhysicalDeviceGroupCount; i++) {
       const VkPhysicalDeviceGroupProperties *props =
@@ -434,14 +392,6 @@ vkr_dispatch_vkEnumeratePhysicalDeviceGroups(
       for (uint32_t j = 0; j < props->physicalDeviceCount; j++) {
          const struct vkr_physical_device *physical_dev =
             vkr_instance_lookup_physical_device(instance, props->physicalDevices[j]);
-         if (!physical_dev) {
-            vkr_log("venus driver is required to call vkEnumeratePhysicalDevices first");
-            args->ret = VK_ERROR_INITIALIZATION_FAILED;
-            if (orig_props)
-               free(args->pPhysicalDeviceGroupProperties);
-            return;
-         }
-
          vkr_cs_handle_store_id((void **)&out->physicalDevices[j], physical_dev->base.id,
                                 VK_OBJECT_TYPE_PHYSICAL_DEVICE);
       }
@@ -461,7 +411,7 @@ vkr_dispatch_vkEnumerateDeviceExtensionProperties(
    struct vkr_physical_device *physical_dev =
       vkr_physical_device_from_handle(args->physicalDevice);
    if (args->pLayerName) {
-      vkr_context_set_fatal(ctx);
+      vkr_cs_decoder_set_fatal(&ctx->decoder);
       return;
    }
 
@@ -593,17 +543,7 @@ vkr_dispatch_vkGetPhysicalDeviceMemoryProperties2(
 {
    struct vkr_physical_device *physical_dev =
       vkr_physical_device_from_handle(args->physicalDevice);
-
-   if (args->pMemoryProperties->pNext == NULL) {
-      /* The client is querying only VkPhysicalDeviceMemoryProperties, which is
-       * invariant. Return the cached properties.
-       */
-      args->pMemoryProperties->memoryProperties = physical_dev->memory_properties;
-   } else {
-      vn_replace_vkGetPhysicalDeviceMemoryProperties2_args_handle(args);
-      vkGetPhysicalDeviceMemoryProperties2(args->physicalDevice,
-                                           args->pMemoryProperties);
-   }
+   args->pMemoryProperties->memoryProperties = physical_dev->memory_properties;
 }
 
 static void

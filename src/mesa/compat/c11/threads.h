@@ -35,6 +35,8 @@
 #define TIME_UTC 1
 #endif
 
+#include "c99_compat.h" /* for `inline` */
+
 /*---------------------------- types ----------------------------*/
 typedef void (*tss_dtor_t)(void*);
 typedef int (*thrd_start_t)(void*);

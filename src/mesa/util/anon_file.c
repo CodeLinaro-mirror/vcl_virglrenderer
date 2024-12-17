@@ -27,6 +27,7 @@
  * Based on weston shared/os-compatibility.c
  */
 
+#ifndef _WIN32
 #include "anon_file.h"
 
 #include <unistd.h>
@@ -162,3 +163,4 @@ os_create_anonymous_file(off_t size, const char *debug_name)
 
    return fd;
 }
+#endif

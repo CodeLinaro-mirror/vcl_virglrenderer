@@ -294,7 +294,16 @@ proxy_context_submit_cmd(struct virgl_context *base, const void *buffer, size_t 
       }
    }
 
-   return 0;
+   /* XXX this is forced a roundtrip to avoid surprises; vtest requires this
+    * at least
+    */
+   struct render_context_op_submit_cmd_reply reply;
+   if (!proxy_socket_receive_reply(&ctx->socket, &reply, sizeof(reply))) {
+      proxy_log("failed to get submit result");
+      return -1;
+   }
+
+   return reply.ok ? 0 : -1;
 }
 
 static bool
@@ -392,9 +401,6 @@ proxy_context_get_blob(struct virgl_context *base,
    blob->u.fd = reply_fd;
    blob->map_info = reply.map_info;
 
-   if (reply.fd_type == VIRGL_RESOURCE_FD_OPAQUE)
-      blob->vulkan_info = reply.vulkan_info;
-
    proxy_context_resource_add(ctx, res_id);
 
    return 0;
@@ -418,10 +424,6 @@ proxy_context_detach_resource(struct virgl_context *base, struct virgl_resource 
    struct proxy_context *ctx = (struct proxy_context *)base;
    const uint32_t res_id = res->res_id;
 
-   /* avoid detaching resource not belonging to this context */
-   if (!proxy_context_resource_find(ctx, res_id))
-      return;
-
    const struct render_context_op_destroy_resource_request req = {
       .header.op = RENDER_CONTEXT_OP_DESTROY_RESOURCE,
       .res_id = res_id,
@@ -442,37 +444,15 @@ proxy_context_attach_resource(struct virgl_context *base, struct virgl_resource 
    if (proxy_context_resource_find(ctx, res_id))
       return;
 
-   /* The current render protocol only supports importing dma-buf, shm or pipe resource
-    * that can be exported to dma-buf. A protocol change is needed when there exists use
-    * case for importing external Vulkan opaque resource.
-    */
-   if (res->fd_type != VIRGL_RESOURCE_FD_INVALID &&
-       res->fd_type != VIRGL_RESOURCE_FD_DMABUF &&
-       res->fd_type != VIRGL_RESOURCE_FD_SHM) {
-      proxy_log("failed to attach res %d with fd_type %d", res_id, res->fd_type);
-      return;
-   }
-
    enum virgl_resource_fd_type res_fd_type = res->fd_type;
    int res_fd = res->fd;
-   uint64_t res_size = res->map_size;
    bool close_res_fd = false;
    if (res_fd_type == VIRGL_RESOURCE_FD_INVALID) {
-      /* importable pipe resouce can only export as dma-buf */
       res_fd_type = virgl_resource_export_fd(res, &res_fd);
-      if (res_fd_type != VIRGL_RESOURCE_FD_DMABUF) {
-         /* close fd for unexpected fd type from succeeded export */
-         if (res_fd_type != VIRGL_RESOURCE_FD_INVALID)
-            close(res_fd);
-         proxy_log("exported res %d to unexpected fd_type %d", res_id, res_fd_type);
+      if (res_fd_type == VIRGL_RESOURCE_FD_INVALID) {
+         proxy_log("failed to export res %d", res_id);
          return;
       }
-
-      /* get the actual dma-buf size here because:
-       * - pipe resource created by vrend has a zero map_size
-       * - blob resource created by vrend can have non-zero fake map_size
-       */
-      res_size = lseek(res_fd, 0, SEEK_END);
 
       close_res_fd = true;
    }
@@ -482,7 +462,7 @@ proxy_context_attach_resource(struct virgl_context *base, struct virgl_resource 
       .header.op = RENDER_CONTEXT_OP_IMPORT_RESOURCE,
       .res_id = res_id,
       .fd_type = res_fd_type,
-      .size = res_size,
+      .size = virgl_resource_get_size(res),
    };
    if (!proxy_socket_send_request_with_fds(&ctx->socket, &req, sizeof(req), &res_fd, 1))
       proxy_log("failed to attach res %d", res_id);

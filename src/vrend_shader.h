@@ -33,7 +33,6 @@
 #define VIRGL_NUM_CLIP_PLANES 8
 
 #define VREND_POLYGON_STIPPLE_SIZE 32
-#define VREND_MAX_COMBINED_SSBO_BINDING_POINTS 32
 
 #define VREND_SHADER_SAMPLER_VIEWS_MASK_LENGTH \
    ((PIPE_MAX_SHADER_SAMPLER_VIEWS + 63) / 64)
@@ -135,12 +134,8 @@ struct vrend_shader_info {
 
    uint32_t samplers_used_mask;
    uint32_t images_used_mask;
-   uint32_t image_binding_offset;
-   int32_t image_last_binding;
    uint32_t ubo_used_mask;
    uint32_t ssbo_used_mask;
-   uint32_t ssbo_binding_offset;
-   int32_t ssbo_last_binding;
    uint32_t shadow_samp_mask;
    uint32_t attrib_input_mask;
    uint32_t fs_blend_equation_advanced;
@@ -163,7 +158,6 @@ struct vrend_shader_info {
    uint8_t has_input_arrays : 1;
    uint8_t has_output_arrays : 1;
    uint8_t use_pervertex_in : 1;
-   uint8_t reads_drawid : 1;
 };
 
 struct vrend_variable_shader_info {
@@ -221,8 +215,6 @@ struct vrend_shader_key {
    uint64_t sampler_views_emulated_rect_mask[VREND_SHADER_SAMPLER_VIEWS_MASK_LENGTH];
    uint16_t tex_swizzle[PIPE_MAX_SHADER_SAMPLER_VIEWS];
 
-   uint8_t ssbo_binding_offset;
-   uint8_t image_binding_offset;
    uint8_t alpha_test;
    uint8_t num_in_cull : 4;
    uint8_t num_in_clip : 4;
@@ -257,8 +249,6 @@ struct vrend_shader_cfg {
    uint32_t has_cull_distance : 1;
    uint32_t has_nopersective : 1;
    uint32_t has_texture_shadow_lod : 1;
-   uint32_t has_vs_layer : 1;
-   uint32_t has_vs_viewport_index : 1;
 };
 
 struct vrend_context;
@@ -289,7 +279,7 @@ bool vrend_shader_create_passthrough_tcs(const struct vrend_context *ctx,
                                          const float tess_factors[6],
                                          struct vrend_shader_info *sinfo,
                                          struct vrend_strarray *shader,
-                                         uint8_t vertices_per_patch);
+                                         int vertices_per_patch);
 
 bool vrend_shader_needs_alpha_func(const struct vrend_shader_key *key);
 

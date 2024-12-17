@@ -27,9 +27,6 @@ proxy_renderer_fini(void);
 void
 proxy_renderer_reset(void);
 
-size_t
-proxy_get_capset(uint32_t set, void *caps);
-
 struct virgl_context *
 proxy_context_create(uint32_t ctx_id,
                      uint32_t ctx_flags,
@@ -41,7 +38,7 @@ proxy_context_create(uint32_t ctx_id,
 static inline int
 proxy_renderer_init(UNUSED const struct proxy_renderer_cbs *cbs, UNUSED uint32_t flags)
 {
-   virgl_error("Render server support was not enabled in virglrenderer\n");
+   virgl_log("Render server support was not enabled in virglrenderer\n");
    return -1;
 }
 
@@ -53,12 +50,6 @@ proxy_renderer_fini(void)
 static inline void
 proxy_renderer_reset(void)
 {
-}
-
-static inline size_t
-proxy_get_capset(UNUSED uint32_t set, UNUSED void *caps)
-{
-   return 0;
 }
 
 static inline struct virgl_context *

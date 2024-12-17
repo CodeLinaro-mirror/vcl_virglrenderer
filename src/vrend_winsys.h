@@ -34,7 +34,7 @@
 #include "vrend_winsys_egl.h"
 #endif
 
-#include "virglrenderer.h"
+#include "virqnnrenderer.h"
 
 #ifndef DRM_FORMAT_MOD_INVALID
 #define DRM_FORMAT_MOD_INVALID 0x00ffffffffffffffULL
@@ -58,9 +58,7 @@ int vrend_winsys_make_context_current(virgl_renderer_gl_context ctx);
 
 int vrend_winsys_has_gl_colorspace(void);
 
-int vrend_winsys_get_attrs_for_texture(uint32_t tex_id, uint32_t format, int *fourcc,
-                                       bool *has_dmabuf_export,
-                                       int *planes, uint64_t *modifiers);
+int vrend_winsys_get_fourcc_for_texture(uint32_t tex_id, uint32_t format, int *fourcc);
 int vrend_winsys_get_fd_for_texture(uint32_t tex_id, int *fd);
 int vrend_winsys_get_fd_for_texture2(uint32_t tex_id, int *fd, int *stride, int *offset);
 

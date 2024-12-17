@@ -71,7 +71,6 @@
 #include <drm_fourcc.h>
 
 #include "pipe/p_video_state.h"
-#include "util/u_formats.h"
 #include "util/u_memory.h"
 #include "virgl_hw.h"
 #include "virgl_video_hw.h"
@@ -115,10 +114,6 @@ struct virgl_video_codec {
    void *opaque;                                /* User opaque data */
 };
 
-struct virgl_video_supported_entry {
-    VAProfile profile;
-    VAEntrypoint entrypoints[16];
-};
 
 static VADisplay va_dpy;
 
@@ -190,10 +185,12 @@ static enum pipe_format pipe_format_from_va_fourcc(unsigned format)
    switch(format) {
    case VA_FOURCC('N','V','1','2'):
       return PIPE_FORMAT_NV12;
+/* TODO: These are already defined in mesa, but not yet in virglrenderer
    case VA_FOURCC('P','0','1','0'):
       return PIPE_FORMAT_P010;
    case VA_FOURCC('P','0','1','6'):
       return PIPE_FORMAT_P016;
+*/
    case VA_FOURCC('I','4','2','0'):
       return PIPE_FORMAT_IYUV;
    case VA_FOURCC('Y','V','1','2'):
@@ -288,21 +285,6 @@ static int va_entrypoint_from_pipe(enum pipe_video_entrypoint entrypoint)
     }
 }
 
-static uint32_t va_format_from_pipe(uint32_t format)
-{
-    uint32_t va_format;
-
-    switch(format) {
-    case PIPE_FORMAT_P010:
-        va_format = VA_RT_FORMAT_YUV420_10;
-        break;
-    default:
-        va_format = VA_RT_FORMAT_YUV420;
-    }
-
-    return va_format;
-}
-
 static uint32_t va_format_from_pipe_chroma(
         enum pipe_video_chroma_format chroma_format)
 {
@@ -340,31 +322,31 @@ static void fill_video_dma_buf(struct virgl_video_dma_buf *dmabuf,
     struct virgl_video_dma_buf_plane *plane;
 
 /*
-    virgl_debug("surface: fourcc=0x%08x, size=%ux%u, num_objects=%u,
-                num_layers=%u\n", desc->fourcc, desc->width, desc->height,
-                desc->num_objects, desc->num_layers);
+    virgl_log("surface: fourcc=0x%08x, size=%ux%u, num_objects=%u,
+              num_layers=%u\n", desc->fourcc, desc->width, desc->height,
+              desc->num_objects, desc->num_layers);
 
     for (i = 0; i < desc->num_objects; i++)
-        virgl_debug("  objects[%u]: fd=%d, size=%u, modifier=0x%lx\n",
-                    i, desc->objects[i].fd, desc->objects[i].size,
-                    desc->objects[i].drm_format_modifier);
+        virgl_log("  objects[%u]: fd=%d, size=%u, modifier=0x%lx\n",
+                  i, desc->objects[i].fd, desc->objects[i].size,
+                  desc->objects[i].drm_format_modifier);
 
     for (i = 0; i < desc->num_layers; i++)
-        virgl_debug("  layers[%u] : format=0x%08x, num_planes=%u, "
-                    "obj=%u,%u,%u,%u, offset=%u,%u,%u,%u, pitch=%u,%u,%u,%u\n",
-                    i, desc->layers[i].drm_format, desc->layers[i].num_planes,
-                    desc->layers[i].object_index[0],
-                    desc->layers[i].object_index[1],
-                    desc->layers[i].object_index[2],
-                    desc->layers[i].object_index[3],
-                    desc->layers[i].offset[0],
-                    desc->layers[i].offset[1],
-                    desc->layers[i].offset[2],
-                    desc->layers[i].offset[3],
-                    desc->layers[i].pitch[0],
-                    desc->layers[i].pitch[1],
-                    desc->layers[i].pitch[2],
-                    desc->layers[i].pitch[3]);
+        virgl_log("  layers[%u] : format=0x%08x, num_planes=%u, "
+                  "obj=%u,%u,%u,%u, offset=%u,%u,%u,%u, pitch=%u,%u,%u,%u\n",
+                  i, desc->layers[i].drm_format, desc->layers[i].num_planes,
+                  desc->layers[i].object_index[0],
+                  desc->layers[i].object_index[1],
+                  desc->layers[i].object_index[2],
+                  desc->layers[i].object_index[3],
+                  desc->layers[i].offset[0],
+                  desc->layers[i].offset[1],
+                  desc->layers[i].offset[2],
+                  desc->layers[i].offset[3],
+                  desc->layers[i].pitch[0],
+                  desc->layers[i].pitch[1],
+                  desc->layers[i].pitch[2],
+                  desc->layers[i].pitch[3]);
 */
 
     dmabuf->drm_format = drm_format_from_va_fourcc(desc->fourcc);
@@ -411,7 +393,7 @@ static struct virgl_video_dma_buf *export_video_dma_buf(
     va_stat = vaExportSurfaceHandle(va_dpy, buffer->va_sfc,
                     VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2, exp_flags, &desc);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("export surface failed, err = 0x%X\n", va_stat);
+        virgl_log("export surface failed, err = 0x%X\n", va_stat);
         goto free_dmabuf;
     }
 
@@ -448,7 +430,7 @@ static void encode_upload_picture(struct virgl_video_codec *codec,
 
     va_stat = vaSyncSurface(va_dpy, buffer->va_sfc);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("sync surface failed, err = 0x%x\n", va_stat);
+        virgl_log("sync surface failed, err = 0x%x\n", va_stat);
         return;
     }
 
@@ -473,7 +455,7 @@ static void encode_completed(struct virgl_video_codec *codec,
 
     va_stat = vaMapBuffer(va_dpy, codec->va_coded_buf, (void **)(&buf_list));
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("map coded buffer failed, err = 0x%x\n", va_stat);
+        virgl_log("map coded buffer failed, err = 0x%x\n", va_stat);
         return;
     }
 
@@ -483,7 +465,7 @@ static void encode_completed(struct virgl_video_codec *codec,
     coded_bufs = calloc(num_coded_bufs, sizeof(void *));
     coded_sizes = calloc(num_coded_bufs, sizeof(unsigned));
     if (!coded_bufs || !coded_sizes) {
-        virgl_error("alloc memory failed, num_coded_bufs %u\n", num_coded_bufs);
+        virgl_log("alloc memory failed, num_coded_bufs %u\n", num_coded_bufs);
         goto fail_unmap_buffer;
     }
 
@@ -533,7 +515,7 @@ static VASurfaceID get_enc_ref_pic(struct virgl_video_codec *codec,
         args.opaque = NULL;
         codec->ref_pic_list[idx] = virgl_video_create_buffer(&args);
         if (!codec->ref_pic_list[idx]) {
-            virgl_error("create ref pic for frame_num %u failed\n", frame_num);
+            virgl_log("create ref pic for frame_num %u failed\n", frame_num);
             return VA_INVALID_ID;
         }
     }
@@ -551,30 +533,30 @@ int virgl_video_init(int drm_fd,
     (void)flags;
 
     if (drm_fd < 0) {
-        virgl_error("invalid drm fd: %d\n", drm_fd);
+        virgl_log("invalid drm fd: %d\n", drm_fd);
         return -1;
     }
 
     va_dpy = vaGetDisplayDRM(drm_fd);
     if (!va_dpy) {
-        virgl_error("get va display failed\n");
+        virgl_log("get va display failed\n");
         return -1;
     }
 
     va_stat = vaInitialize(va_dpy, &major_ver, &minor_ver);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("init va library failed\n");
+        virgl_log("init va library failed\n");
         virgl_video_destroy();
         return -1;
     }
 
-    virgl_info("VA-API version: %d.%d\n", major_ver, minor_ver);
+    virgl_log("VA-API version: %d.%d\n", major_ver, minor_ver);
 
     driver = vaQueryVendorString(va_dpy);
-    virgl_info("Driver version: %s\n", driver ? driver : "<unknown>");
+    virgl_log("Driver version: %s\n", driver ? driver : "<unknown>");
 
     if (!driver || !strstr(driver, "Mesa Gallium")) {
-        virgl_error("only supports mesa va drivers now\n");
+        virgl_log("only supports mesa va drivers now\n");
         virgl_video_destroy();
         return -1;
     }
@@ -592,46 +574,6 @@ void virgl_video_destroy(void)
     }
 
     callbacks = NULL;
-}
-
-/* When entrypoint equals VAEntrypointNone, only match profile */
-static bool is_supported(VAProfile profile, VAEntrypoint entrypoint)
-{
-    /* The profiles and entrypoints that virgl video currently supported */
-    static const struct virgl_video_supported_entry tbl[] = {
-        {VAProfileMPEG2Simple,  {VAEntrypointVLD, 0}},
-        {VAProfileMPEG2Main,    {VAEntrypointVLD, 0}},
-        {VAProfileH264ConstrainedBaseline,
-                                {VAEntrypointVLD, VAEntrypointEncSlice, 0}},
-        {VAProfileH264Main,     {VAEntrypointVLD, VAEntrypointEncSlice, 0}},
-        {VAProfileH264High,     {VAEntrypointVLD, VAEntrypointEncSlice, 0}},
-        {VAProfileHEVCMain,     {VAEntrypointVLD, VAEntrypointEncSlice, 0}},
-        {VAProfileHEVCMain10,   {VAEntrypointVLD, VAEntrypointEncSlice, 0}},
-        {VAProfileJPEGBaseline, {VAEntrypointVLD, 0}},
-        {VAProfileVC1Simple,    {VAEntrypointVLD, 0}},
-        {VAProfileVC1Main,      {VAEntrypointVLD, 0}},
-        {VAProfileVC1Advanced,  {VAEntrypointVLD, 0}},
-        {VAProfileVP9Profile0,  {VAEntrypointVLD, 0}},
-        {VAProfileVP9Profile2,  {VAEntrypointVLD, 0}},
-        {VAProfileAV1Profile0,  {VAEntrypointVLD, 0}},
-        {VAProfileAV1Profile1,  {VAEntrypointVLD, 0}},
-    };
-
-    for (unsigned i = 0; i < ARRAY_SIZE(tbl); i++) {
-        if (tbl[i].profile == profile) {
-            if (entrypoint == VAEntrypointNone)
-                return true;
-
-            for (unsigned j = 0; j < ARRAY_SIZE(tbl[i].entrypoints) &&
-                 tbl[i].entrypoints[j] != 0; j++)
-                if (entrypoint == tbl[i].entrypoints[j])
-                    return true;
-
-            return false;
-        }
-    }
-
-    return false;
 }
 
 static int fill_vcaps_entry(VAProfile profile, VAEntrypoint entrypoint,
@@ -713,15 +655,21 @@ int virgl_video_fill_caps(union virgl_caps *caps)
 
     vaQueryConfigProfiles(va_dpy, profiles, &num_profiles);
     for (i = 0, caps->v2.num_video_caps = 0; i < num_profiles; i++) {
-        if (!is_supported(profiles[i], VAEntrypointNone))
-		continue;
+        /* only support H.264 and H.265 now */
+        if (profiles[i] != VAProfileH264Main &&
+            profiles[i] != VAProfileH264High &&
+            profiles[i] != VAProfileH264ConstrainedBaseline &&
+            profiles[i] != VAProfileHEVCMain)
+            continue;
 
         vaQueryConfigEntrypoints(va_dpy, profiles[i],
                                  entrypoints, &num_entrypoints);
         for (j = 0; j < num_entrypoints &&
              caps->v2.num_video_caps < ARRAY_SIZE(caps->v2.video_caps); j++) {
-	    if (!is_supported(profiles[i], entrypoints[j]))
-		continue;
+            /* support encoding and decoding */
+            if (VAEntrypointVLD != entrypoints[j] &&
+                VAEntrypointEncSlice != entrypoints[j])
+                continue;
 
             fill_vcaps_entry(profiles[i], entrypoints[j],
                     &caps->v2.video_caps[caps->v2.num_video_caps++]);
@@ -762,14 +710,14 @@ struct virgl_video_codec *virgl_video_create_codec(
     attr.type = VAConfigAttribRTFormat;
     vaGetConfigAttributes(va_dpy, profile, entrypoint, &attr, 1);
     if (!(attr.value & format)) {
-        virgl_error("format 0x%x not supported, supported formats: 0x%x\n",
+        virgl_log("format 0x%x not supported, supported formats: 0x%x\n",
                   format, attr.value);
         goto err;
     }
 
     va_stat = vaCreateConfig(va_dpy, profile, entrypoint, &attr, 1, &cfg);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("create config failed, err = 0x%x\n", va_stat);
+        virgl_log("create config failed, err = 0x%x\n", va_stat);
         goto err;
     }
     codec->va_cfg = cfg;
@@ -777,7 +725,7 @@ struct virgl_video_codec *virgl_video_create_codec(
     va_stat = vaCreateContext(va_dpy, cfg, args->width, args->height,
                                 VA_PROGRESSIVE, NULL, 0, &ctx);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("create context failed, err = 0x%x\n", va_stat);
+        virgl_log("create context failed, err = 0x%x\n", va_stat);
         goto err;
     }
     codec->va_ctx = ctx;
@@ -840,9 +788,13 @@ struct virgl_video_buffer *virgl_video_create_buffer(
     if (!va_dpy || !args)
         return NULL;
 
-    format = va_format_from_pipe(args->format);
+    /*
+     * FIXME: always use YUV420 now,
+     * may be use va_format_from_pipe(args->format)
+     */
+    format = VA_RT_FORMAT_YUV420;
     if (!format) {
-        virgl_error("pipe format %d not supported\n", args->format);
+        virgl_log("pipe format %d not supported\n", args->format);
         return NULL;
     }
 
@@ -915,7 +867,7 @@ int virgl_video_begin_frame(struct virgl_video_codec *codec,
     codec->buffer = target;
     va_stat = vaBeginPicture(va_dpy, codec->va_ctx, target->va_sfc);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("begin picture failed, err = 0x%x\n", va_stat);
+        virgl_log("begin picture failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
@@ -1391,7 +1343,7 @@ static int h264_decode_bitstream(struct virgl_video_codec *codec,
 
     slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
     if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
+        virgl_log("alloc slice data buffer id failed\n");
         return -1;
     }
 
@@ -1414,21 +1366,21 @@ static int h264_decode_bitstream(struct virgl_video_codec *codec,
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
+        virgl_log("render picture param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto err;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &iq_matrix_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render iq matrix failed, err = 0x%x\n", va_stat);
+        virgl_log("render iq matrix failed, err = 0x%x\n", va_stat);
         err = -1;
         goto err;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
+        virgl_log("render slice param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto err;
     }
@@ -1437,7 +1389,7 @@ static int h264_decode_bitstream(struct virgl_video_codec *codec,
         va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
 
         if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
+            virgl_log("render slice data failed, err = 0x%x\n", va_stat);
             err = -1;
         }
     }
@@ -1489,21 +1441,21 @@ static int h264_encode_render_sequence(
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &seq_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h264 sequence param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h264 sequence param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &rc_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h264 rate control param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h264 rate control param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &fr_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h264 frame rate param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h264 frame rate param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
@@ -1534,7 +1486,7 @@ static int h264_encode_render_picture(
     vaDestroyBuffer(va_dpy, pic_param_buf);
 
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h264 picture param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h264 picture param failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
@@ -1559,7 +1511,7 @@ static int h264_encode_render_slice(
     vaDestroyBuffer(va_dpy, slice_param_buf);
 
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h264 slice param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h264 slice param failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
@@ -2107,7 +2059,7 @@ static int h265_decode_bitstream(struct virgl_video_codec *codec,
 
     slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
     if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
+        virgl_log("alloc slice data buffer id failed\n");
         return -1;
     }
 
@@ -2126,14 +2078,14 @@ static int h265_decode_bitstream(struct virgl_video_codec *codec,
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
+        virgl_log("render picture param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto err;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
+        virgl_log("render slice param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto err;
     }
@@ -2142,7 +2094,7 @@ static int h265_decode_bitstream(struct virgl_video_codec *codec,
         va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
 
         if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
+            virgl_log("render slice data failed, err = 0x%x\n", va_stat);
             err = -1;
         }
     }
@@ -2193,21 +2145,21 @@ static int h265_encode_render_sequence(
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &seq_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h265 sequence param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h265 sequence param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &rc_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h265 rate control param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h265 rate control param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
 
     va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &fr_param_buf, 1);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h265 frame rate param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h265 frame rate param failed, err = 0x%x\n", va_stat);
         err = -1;
         goto error;
     }
@@ -2238,7 +2190,7 @@ static int h265_encode_render_picture(
     vaDestroyBuffer(va_dpy, pic_param_buf);
 
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h265 picture param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h265 picture param failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
@@ -2263,7 +2215,7 @@ static int h265_encode_render_slice(
     vaDestroyBuffer(va_dpy, slice_param_buf);
 
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render h265 slice param failed, err = 0x%x\n", va_stat);
+        virgl_log("render h265 slice param failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
@@ -2285,799 +2237,6 @@ static int h265_encode_bitstream(
     return 0;
 }
 
-
-static void mpeg12_fill_picture_param(struct virgl_video_codec *codec,
-                                      struct virgl_video_buffer *target,
-                                      const struct virgl_mpeg12_picture_desc *desc,
-                                      VAPictureParameterBufferMPEG2 *vapp)
-{
-    (void)codec;
-    (void)target;
-    vapp->forward_reference_picture = desc->ref[0];
-    vapp->backward_reference_picture = desc->ref[1];
-    vapp->f_code = (desc->f_code[0][0] + 1) <<12;
-    vapp->f_code |= (desc->f_code[0][1] + 1) <<8;
-    vapp->f_code |= (desc->f_code[1][0] + 1) <<4;
-    vapp->f_code |= (desc->f_code[1][1] + 1) <<0;
-    ITEM_SET(vapp, desc, picture_coding_type);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, intra_dc_precision);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, picture_structure);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, top_field_first);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, frame_pred_frame_dct);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, concealment_motion_vectors);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, q_scale_type);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, intra_vlc_format);
-    ITEM_SET(&vapp->picture_coding_extension.bits, desc, alternate_scan);
-}
-
-static void mpeg12_fill_slice_param(const struct virgl_mpeg12_picture_desc *desc,
-                                    VASliceParameterBufferMPEG2 *vasp)
-{
-    (void)desc;
-    (void)vasp;
-}
-
-static int mpeg12_decode_bitstream(struct virgl_video_codec *codec,
-                                   struct virgl_video_buffer *target,
-                                   const struct virgl_mpeg12_picture_desc *desc,
-                                   unsigned num_buffers,
-                                   const void * const *buffers,
-                                   const unsigned *sizes)
-{
-    unsigned i;
-    int err = 0;
-    VAStatus va_stat;
-    VABufferID *slice_data_buf, pic_param_buf, slice_param_buf;
-    VAPictureParameterBufferMPEG2 pic_param = {0};
-    VASliceParameterBufferMPEG2 slice_param = {0};
-
-    slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
-    if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
-        return -1;
-    }
-
-    mpeg12_fill_picture_param(codec, target, desc, &pic_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAPictureParameterBufferType,
-                   sizeof(pic_param), 1, &pic_param, &pic_param_buf);
-
-    mpeg12_fill_slice_param(desc, &slice_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VASliceParameterBufferType,
-                   sizeof(slice_param), 1, &slice_param, &slice_param_buf);
-
-    for (i = 0; i < num_buffers; i++) {
-        vaCreateBuffer(va_dpy, codec->va_ctx, VASliceDataBufferType,
-                       sizes[i], 1, (void *)(buffers[i]), &slice_data_buf[i]);
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    for (i = 0; i < num_buffers; i++) {
-        va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
-
-        if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
-            err = -1;
-        }
-    }
-
-err:
-    vaDestroyBuffer(va_dpy, pic_param_buf);
-    vaDestroyBuffer(va_dpy, slice_param_buf);
-    for (i = 0; i < num_buffers; i++)
-        vaDestroyBuffer(va_dpy, slice_data_buf[i]);
-    free(slice_data_buf);
-
-    return err;
-}
-
-static void mjpeg_fill_picture_param(struct virgl_video_codec *codec,
-                                     struct virgl_video_buffer *target,
-                                     const struct virgl_mjpeg_picture_desc *desc,
-                                     VAPictureParameterBufferJPEGBaseline *vapp)
-{
-    int i;
-    (void)codec;
-    (void)target;
-
-    ITEM_SET(vapp, &desc->picture_parameter, picture_width);
-    ITEM_SET(vapp, &desc->picture_parameter, picture_height);
-
-    for (i = 0; i < desc->picture_parameter.num_components; ++i) {
-        ITEM_SET(&vapp->components[i], &desc->picture_parameter.components[i], component_id);
-        ITEM_SET(&vapp->components[i], &desc->picture_parameter.components[i], h_sampling_factor);
-        ITEM_SET(&vapp->components[i], &desc->picture_parameter.components[i], v_sampling_factor);
-        ITEM_SET(&vapp->components[i], &desc->picture_parameter.components[i], quantiser_table_selector);
-    }
-
-    ITEM_SET(vapp, &desc->picture_parameter, num_components);
-}
-
-static void mjpeg_fill_slice_param(const struct virgl_mjpeg_picture_desc *desc,
-                                   VASliceParameterBufferJPEGBaseline *vasp)
-{
-    int i;
-
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_size);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_offset);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_flag);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_horizontal_position);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_vertical_position);
-
-    for (i = 0; i < desc->slice_parameter.num_components; ++i) {
-        ITEM_SET(&vasp->components[i], &desc->slice_parameter.components[i], component_selector);
-        ITEM_SET(&vasp->components[i], &desc->slice_parameter.components[i], dc_table_selector);
-        ITEM_SET(&vasp->components[i], &desc->slice_parameter.components[i], ac_table_selector);
-    }
-
-    ITEM_SET(vasp, &desc->slice_parameter, num_components);
-    ITEM_SET(vasp, &desc->slice_parameter, restart_interval);
-    ITEM_SET(vasp, &desc->slice_parameter, num_mcus);
-}
-
-static void mjpeg_fill_iq_matrix(const struct virgl_mjpeg_picture_desc *desc,
-                                VAIQMatrixBufferJPEGBaseline *vaiqm)
-{
-    ITEM_CPY(vaiqm, &desc->quantization_table, load_quantiser_table);
-    ITEM_CPY(vaiqm, &desc->quantization_table, quantiser_table);
-}
-
-static void mjpeg_fill_huffman_table(const struct virgl_mjpeg_picture_desc *desc,
-                                    VAHuffmanTableBufferJPEGBaseline *vahftb)
-{
-    int i;
-    for (i = 0; i < 2; ++i) {
-        ITEM_SET(vahftb, &desc->huffman_table, load_huffman_table[i]);
-        ITEM_CPY(&vahftb->huffman_table[i], &desc->huffman_table.table[i], num_dc_codes);
-        ITEM_CPY(&vahftb->huffman_table[i], &desc->huffman_table.table[i], dc_values);
-        ITEM_CPY(&vahftb->huffman_table[i], &desc->huffman_table.table[i], num_ac_codes);
-        ITEM_CPY(&vahftb->huffman_table[i], &desc->huffman_table.table[i], ac_values);
-    }
-
-}
-
-static int mjpeg_decode_bitstream(struct virgl_video_codec *codec,
-                                  struct virgl_video_buffer *target,
-                                  const struct virgl_mjpeg_picture_desc *desc,
-                                  unsigned num_buffers,
-                                  const void * const *buffers,
-                                  const unsigned *sizes)
-{
-    unsigned i;
-    int err = 0;
-    VAStatus va_stat;
-    VABufferID *slice_data_buf, pic_param_buf, slice_param_buf, iq_matrix_buf, huffman_table_buf;
-    VAPictureParameterBufferJPEGBaseline pic_param = {0};
-    VASliceParameterBufferJPEGBaseline slice_param = {0};
-    VAIQMatrixBufferJPEGBaseline iq_matrix = {0};
-    VAHuffmanTableBufferJPEGBaseline huffman_table = {0};
-
-    slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
-    if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
-        return -1;
-    }
-
-    mjpeg_fill_picture_param(codec, target, desc, &pic_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAPictureParameterBufferType,
-                   sizeof(pic_param), 1, &pic_param, &pic_param_buf);
-
-    mjpeg_fill_iq_matrix(desc, &iq_matrix);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAIQMatrixBufferType,
-                   sizeof(iq_matrix), 1, &iq_matrix, &iq_matrix_buf);
-
-    mjpeg_fill_huffman_table(desc, &huffman_table);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAHuffmanTableBufferType,
-                   sizeof(iq_matrix), 1, &huffman_table, &huffman_table_buf);
-
-    mjpeg_fill_slice_param(desc, &slice_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VASliceParameterBufferType,
-                   sizeof(slice_param), 1, &slice_param, &slice_param_buf);
-
-    for (i = 0; i < num_buffers; i++) {
-        vaCreateBuffer(va_dpy, codec->va_ctx, VASliceDataBufferType,
-                       sizes[i], 1, (void *)(buffers[i]), &slice_data_buf[i]);
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &huffman_table_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render huffman_table_buf failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &iq_matrix_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render iq_matrix_buf failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-    
-    for (i = 0; i < num_buffers; i++) {
-        va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
-
-        if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
-            err = -1;
-        }
-    }
-
-err:
-    vaDestroyBuffer(va_dpy, pic_param_buf);
-    vaDestroyBuffer(va_dpy, slice_param_buf);
-    for (i = 0; i < num_buffers; i++)
-        vaDestroyBuffer(va_dpy, slice_data_buf[i]);
-    free(slice_data_buf);
-
-    return err;
-}
-
-
-static void vc1_fill_picture_param(struct virgl_video_codec *codec,
-                            struct virgl_video_buffer *target,
-                            const struct virgl_vc1_picture_desc *desc,
-                            VAPictureParameterBufferVC1 *vapp)
-{
-    (void)codec;
-    (void)target;
-    vapp->forward_reference_picture = desc->ref[0];
-    vapp->backward_reference_picture = desc->ref[1];
-
-    ITEM_SET(&vapp->picture_fields.bits, desc, picture_type);
-    ITEM_SET(&vapp->picture_fields.bits, desc, frame_coding_mode);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, pulldown);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, interlace);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, tfcntrflag);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, finterpflag);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, psf);
-    ITEM_SET(&vapp->pic_quantizer_fields.bits, desc, dquant);
-    ITEM_SET(&vapp->entrypoint_fields.bits, desc, panscan_flag);
-    vapp->reference_fields.bits.reference_distance_flag = desc->refdist_flag;
-    ITEM_SET(&vapp->pic_quantizer_fields.bits, desc, quantizer);
-    vapp->mv_fields.bits.extended_mv_flag = desc->extended_mv;
-    vapp->mv_fields.bits.extended_dmv_flag = desc->extended_dmv;
-    ITEM_SET(&vapp->sequence_fields.bits, desc, overlap);
-    vapp->transform_fields.bits.variable_sized_transform_flag = desc->vstransform;
-    ITEM_SET(&vapp->entrypoint_fields.bits, desc, loopfilter);
-    vapp->fast_uvmc_flag = desc->fastuvmc;
-    vapp->range_mapping_fields.bits.luma_flag = desc->range_mapy_flag;
-    vapp->range_mapping_fields.bits.luma = desc->range_mapy;
-    vapp->range_mapping_fields.bits.chroma_flag = desc->range_mapuv_flag;
-    vapp->range_mapping_fields.bits.chroma = desc->range_mapuv;
-    vapp->sequence_fields.bits.multires = desc->multires;
-    ITEM_SET(&vapp->sequence_fields.bits, desc, syncmarker);
-    ITEM_SET(&vapp->sequence_fields.bits, desc, rangered);
-    vapp->sequence_fields.bits.max_b_frames = desc->maxbframes;
-    vapp->pic_quantizer_fields.bits.pic_quantizer_scale = desc->pquant;
-}
-
-static void vc1_fill_slice_param(const struct virgl_vc1_picture_desc *desc,
-                                 VASliceParameterBufferVC1 *vasp)
-{
-    (void)desc;
-    (void)vasp;
-}
-
-static int vc1_decode_bitstream(struct virgl_video_codec *codec,
-                                struct virgl_video_buffer *target,
-                                const struct virgl_vc1_picture_desc *desc,
-                                unsigned num_buffers,
-                                const void * const *buffers,
-                                const unsigned *sizes)
-{
-    unsigned i;
-    int err = 0;
-    VAStatus va_stat;
-    VABufferID *slice_data_buf, pic_param_buf, slice_param_buf;
-    VAPictureParameterBufferVC1 pic_param = {0};
-    VASliceParameterBufferVC1 slice_param = {0};
-
-    slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
-    if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
-        return -1;
-    }
-
-    vc1_fill_picture_param(codec, target, desc, &pic_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAPictureParameterBufferType,
-                   sizeof(pic_param), 1, &pic_param, &pic_param_buf);
-
-    vc1_fill_slice_param(desc, &slice_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VASliceParameterBufferType,
-                   sizeof(slice_param), 1, &slice_param, &slice_param_buf);
-
-    for (i = 0; i < num_buffers; i++) {
-        vaCreateBuffer(va_dpy, codec->va_ctx, VASliceDataBufferType,
-                       sizes[i], 1, (void *)(buffers[i]), &slice_data_buf[i]);
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    for (i = 0; i < num_buffers; i++) {
-        va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
-
-        if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
-            err = -1;
-        }
-    }
-
-err:
-    vaDestroyBuffer(va_dpy, pic_param_buf);
-    vaDestroyBuffer(va_dpy, slice_param_buf);
-    for (i = 0; i < num_buffers; i++)
-        vaDestroyBuffer(va_dpy, slice_data_buf[i]);
-    free(slice_data_buf);
-
-    return err;
-}
-
-static void vp9_fill_picture_param(struct virgl_video_codec *codec,
-                                   struct virgl_video_buffer *target,
-                                   const struct virgl_vp9_picture_desc *desc,
-                                   VADecPictureParameterBufferVP9 *vapp)
-{
-    unsigned i;
-    (void)codec;
-    (void)target;
-
-    for (i = 0; i < 8; i++)
-        vapp->reference_frames[i] = desc->ref[i];
-
-    ITEM_SET(vapp, &desc->picture_parameter, frame_width);
-    ITEM_SET(vapp, &desc->picture_parameter, frame_height);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, subsampling_x);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, subsampling_y);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, frame_type);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, show_frame);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, error_resilient_mode);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, intra_only);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, allow_high_precision_mv);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, mcomp_filter_type);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, frame_parallel_decoding_mode);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, reset_frame_context);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, refresh_frame_context);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, frame_context_idx);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, segmentation_enabled);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, segmentation_temporal_update);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, segmentation_update_map);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, last_ref_frame);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, last_ref_frame_sign_bias);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, golden_ref_frame);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, golden_ref_frame_sign_bias);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, alt_ref_frame);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, alt_ref_frame_sign_bias);
-    ITEM_SET(&vapp->pic_fields.bits, &desc->picture_parameter.pic_fields, lossless_flag);
-    ITEM_SET(vapp, &desc->picture_parameter, filter_level);
-    ITEM_SET(vapp, &desc->picture_parameter, sharpness_level);
-    ITEM_SET(vapp, &desc->picture_parameter, log2_tile_rows);
-    ITEM_SET(vapp, &desc->picture_parameter, log2_tile_columns);
-    ITEM_SET(vapp, &desc->picture_parameter, frame_header_length_in_bytes);
-    ITEM_SET(vapp, &desc->picture_parameter, first_partition_size);
-    ITEM_CPY(vapp, &desc->picture_parameter, mb_segment_tree_probs);
-    ITEM_CPY(vapp, &desc->picture_parameter, segment_pred_probs);
-    ITEM_SET(vapp, &desc->picture_parameter, profile);
-    ITEM_SET(vapp, &desc->picture_parameter, bit_depth);
-}
-
-static void vp9_fill_slice_param(const struct virgl_vp9_picture_desc *desc,
-                                  VASliceParameterBufferVP9 *vasp)
-{
-    int i;
-
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_size);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_offset);
-    ITEM_SET(vasp, &desc->slice_parameter, slice_data_flag);
-    for (i = 0; i < 8; i++) {
-        vasp->seg_param[i].segment_flags.fields.segment_reference_enabled =
-            desc->slice_parameter.seg_param[i].segment_flags.segment_reference_enabled;
-        vasp->seg_param[i].segment_flags.fields.segment_reference =
-            desc->slice_parameter.seg_param[i].segment_flags.segment_reference;
-        vasp->seg_param[i].segment_flags.fields.segment_reference_skipped =
-            desc->slice_parameter.seg_param[i].segment_flags.segment_reference_skipped;
-        ITEM_CPY(vasp, &desc->slice_parameter, seg_param[i].filter_level);
-        ITEM_SET(vasp, &desc->slice_parameter, seg_param[i].luma_ac_quant_scale);
-        ITEM_SET(vasp, &desc->slice_parameter, seg_param[i].luma_dc_quant_scale);
-        ITEM_SET(vasp, &desc->slice_parameter, seg_param[i].chroma_ac_quant_scale);
-        ITEM_SET(vasp, &desc->slice_parameter, seg_param[i].chroma_dc_quant_scale);
-    }
-}
-
-static int vp9_decode_bitstream(struct virgl_video_codec *codec,
-                                 struct virgl_video_buffer *target,
-                                 const struct virgl_vp9_picture_desc *desc,
-                                 unsigned num_buffers,
-                                 const void * const *buffers,
-                                 const unsigned *sizes)
-{
-    unsigned i;
-    int err = 0;
-    VAStatus va_stat;
-    VABufferID *slice_data_buf, pic_param_buf, slice_param_buf;
-    VADecPictureParameterBufferVP9 pic_param = {0};
-    VASliceParameterBufferVP9 slice_param = {0};
-
-    slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
-    if (!slice_data_buf) {
-        virgl_error("alloc slice data buffer id failed\n");
-        return -1;
-    }
-
-    vp9_fill_picture_param(codec, target, desc, &pic_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAPictureParameterBufferType,
-                   sizeof(pic_param), 1, &pic_param, &pic_param_buf);
-
-    vp9_fill_slice_param(desc, &slice_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VASliceParameterBufferType,
-                   sizeof(slice_param), 1, &slice_param, &slice_param_buf);
-
-    for (i = 0; i < num_buffers; i++) {
-        vaCreateBuffer(va_dpy, codec->va_ctx, VASliceDataBufferType,
-                       sizes[i], 1, (void *)(buffers[i]), &slice_data_buf[i]);
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    for (i = 0; i < num_buffers; i++) {
-        va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
-
-        if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
-            err = -1;
-        }
-    }
-
-err:
-    vaDestroyBuffer(va_dpy, pic_param_buf);
-    vaDestroyBuffer(va_dpy, slice_param_buf);
-    for (i = 0; i < num_buffers; i++)
-        vaDestroyBuffer(va_dpy, slice_data_buf[i]);
-    free(slice_data_buf);
-
-    return err;
-}
-
-/*
- * Refer to vlVaHandlePictureParameterBufferAV1() in mesa,
- * and comment out some unused parameters.
- */
-static void av1_fill_picture_param(struct virgl_video_codec *codec,
-                            struct virgl_video_buffer *target,
-                            const struct virgl_av1_picture_desc *desc,
-                            VADecPictureParameterBufferAV1 *param)
-{
-    unsigned i, j;
-
-    (void)codec;
-    (void)target;
-
-    ITEM_SET(param, &desc->picture_parameter, profile);
-    ITEM_SET(param, &desc->picture_parameter, order_hint_bits_minus_1);
-    ITEM_SET(param, &desc->picture_parameter, bit_depth_idx);
-    ITEM_SET(param, &desc->picture_parameter, matrix_coefficients);
-
-    //still_picture;
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, use_128x128_superblock);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_filter_intra);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_intra_edge_filter);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_interintra_compound);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_masked_compound);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_dual_filter);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_order_hint);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_jnt_comp);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, enable_cdef);
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, mono_chrome);
-    //color_range
-    //subsampling_x
-    //subsampling_y
-    //chroma_sample_positio
-    ITEM_SET(&param->seq_info_fields.fields, &desc->picture_parameter.seq_info_fields, film_grain_params_present);
-
-    param->current_frame = desc->picture_parameter.current_frame_id;
-    param->current_display_picture = desc->picture_parameter.current_frame_id;
-
-    //anchor_frames_num
-    //anchor_frames_list
-
-    param->frame_width_minus1 = desc->picture_parameter.frame_width - 1;
-    param->frame_height_minus1 = desc->picture_parameter.frame_height - 1;
-
-    //output_frame_width_in_tiles_minus_1
-    //output_frame_height_in_tiles_minus_1
-
-    for (i = 0; i < ARRAY_SIZE(param->ref_frame_map); i++)
-        param->ref_frame_map[i] = desc->ref[i];
-    for (i = 0; i < ARRAY_SIZE(param->ref_frame_idx); i++)
-        param->ref_frame_idx[i] = desc->picture_parameter.ref_frame_idx[i];
-
-    ITEM_SET(param, &desc->picture_parameter, primary_ref_frame);
-    ITEM_SET(param, &desc->picture_parameter, order_hint);
-
-    /* Segmentation Params */
-    ITEM_SET(&param->seg_info.segment_info_fields.bits, &desc->picture_parameter.seg_info.segment_info_fields, enabled);
-    ITEM_SET(&param->seg_info.segment_info_fields.bits, &desc->picture_parameter.seg_info.segment_info_fields, update_map);
-    ITEM_SET(&param->seg_info.segment_info_fields.bits, &desc->picture_parameter.seg_info.segment_info_fields, update_data);
-    ITEM_SET(&param->seg_info.segment_info_fields.bits, &desc->picture_parameter.seg_info.segment_info_fields, temporal_update);
-    for (i = 0; i < 8; i++) {
-        for (j = 0; j < 8; j++)
-            param->seg_info.feature_data[i][j] = desc->picture_parameter.seg_info.feature_data[i][j];
-        param->seg_info.feature_mask[i] = desc->picture_parameter.seg_info.feature_mask[i];
-    }
-
-    /* Film Grain Params */
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, apply_grain);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, chroma_scaling_from_luma);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, grain_scaling_minus_8);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, ar_coeff_lag);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, ar_coeff_shift_minus_6);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, grain_scale_shift);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, overlap_flag);
-    ITEM_SET(&param->film_grain_info.film_grain_info_fields.bits, &desc->picture_parameter.film_grain_info.film_grain_info_fields, clip_to_restricted_range);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, grain_seed);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, num_y_points);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, num_cb_points);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, num_cr_points);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_y_value); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_y_value[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_y_scaling); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_y_scaling[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_cb_value); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_cb_value[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_cb_scaling); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_cb_scaling[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_cr_value); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_cr_value[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.point_cr_scaling); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, point_cr_scaling[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.ar_coeffs_y); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, ar_coeffs_y[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.ar_coeffs_cb); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, ar_coeffs_cb[i]);
-    for (i = 0; i < ARRAY_SIZE(param->film_grain_info.ar_coeffs_cr); i++)
-        ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, ar_coeffs_cr[i]);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cb_mult);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cb_luma_mult);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cb_offset);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cr_mult);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cr_luma_mult);
-    ITEM_SET(&param->film_grain_info, &desc->picture_parameter.film_grain_info, cr_offset);
-
-    ITEM_SET(param, &desc->picture_parameter, tile_cols);
-    ITEM_SET(param, &desc->picture_parameter, tile_rows);
-
-    if (!desc->picture_parameter.pic_info_fields.uniform_tile_spacing_flag) {
-        for (i = 0; i < ARRAY_SIZE(param->width_in_sbs_minus_1); i++)
-            if (desc->picture_parameter.width_in_sbs[i] > 0)
-                param->width_in_sbs_minus_1[i] = desc->picture_parameter.width_in_sbs[i] - 1;
-        for (i = 0; i < ARRAY_SIZE(param->height_in_sbs_minus_1); i++)
-            if (desc->picture_parameter.height_in_sbs[i] > 0)
-                param->height_in_sbs_minus_1[i] = desc->picture_parameter.height_in_sbs[i] - 1;
-    }
-
-    //tile_count_minus_1
-
-    ITEM_SET(param, &desc->picture_parameter, context_update_tile_id);
-
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, frame_type);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, show_frame);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, showable_frame);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, error_resilient_mode);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, disable_cdf_update);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, allow_screen_content_tools);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, force_integer_mv);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, allow_intrabc);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, use_superres);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, allow_high_precision_mv);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, is_motion_mode_switchable);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, use_ref_frame_mvs);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, disable_frame_end_update_cdf);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, uniform_tile_spacing_flag);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, allow_warped_motion);
-    ITEM_SET(&param->pic_info_fields.bits, &desc->picture_parameter.pic_info_fields, large_scale_tile);
-
-    ITEM_SET(param, &desc->picture_parameter, superres_scale_denominator);
-    ITEM_SET(param, &desc->picture_parameter, interp_filter);
-    for (i = 0; i < ARRAY_SIZE(param->filter_level); i++)
-        ITEM_SET(param, &desc->picture_parameter, filter_level[i]);
-    ITEM_SET(param, &desc->picture_parameter, filter_level_u);
-    ITEM_SET(param, &desc->picture_parameter, filter_level_v);
-
-    ITEM_SET(&param->loop_filter_info_fields.bits, &desc->picture_parameter.loop_filter_info_fields, sharpness_level);
-    ITEM_SET(&param->loop_filter_info_fields.bits, &desc->picture_parameter.loop_filter_info_fields, mode_ref_delta_enabled);
-    ITEM_SET(&param->loop_filter_info_fields.bits, &desc->picture_parameter.loop_filter_info_fields, mode_ref_delta_update);
-
-    for (i = 0; i < ARRAY_SIZE(param->ref_deltas); i++)
-        ITEM_SET(param, &desc->picture_parameter, ref_deltas[i]);
-    for (i = 0; i < ARRAY_SIZE(param->mode_deltas); i++)
-        ITEM_SET(param, &desc->picture_parameter, mode_deltas[i]);
-
-    /* Quantization Params */
-    ITEM_SET(param, &desc->picture_parameter, base_qindex);
-    ITEM_SET(param, &desc->picture_parameter, y_dc_delta_q);
-    ITEM_SET(param, &desc->picture_parameter, u_dc_delta_q);
-    ITEM_SET(param, &desc->picture_parameter, u_ac_delta_q);
-    ITEM_SET(param, &desc->picture_parameter, v_dc_delta_q);
-    ITEM_SET(param, &desc->picture_parameter, v_ac_delta_q);
-    ITEM_SET(&param->qmatrix_fields.bits, &desc->picture_parameter.qmatrix_fields, using_qmatrix);
-    if (desc->picture_parameter.qmatrix_fields.using_qmatrix) {
-        ITEM_SET(&param->qmatrix_fields.bits, &desc->picture_parameter.qmatrix_fields, qm_y);
-        ITEM_SET(&param->qmatrix_fields.bits, &desc->picture_parameter.qmatrix_fields, qm_u);
-        ITEM_SET(&param->qmatrix_fields.bits, &desc->picture_parameter.qmatrix_fields, qm_v);
-    }
-
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, delta_q_present_flag);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, log2_delta_q_res);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, delta_lf_present_flag);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, log2_delta_lf_res);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, delta_lf_multi);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, tx_mode);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, reference_select);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, reduced_tx_set_used);
-    ITEM_SET(&param->mode_control_fields.bits, &desc->picture_parameter.mode_control_fields, skip_mode_present);
-
-    ITEM_SET(param, &desc->picture_parameter, cdef_damping_minus_3);
-    ITEM_SET(param, &desc->picture_parameter, cdef_bits);
-    for (i = 0; i < ARRAY_SIZE(param->cdef_y_strengths); i++)
-        ITEM_SET(param, &desc->picture_parameter, cdef_y_strengths[i]);
-    for (i = 0; i < ARRAY_SIZE(param->cdef_uv_strengths); i++)
-        ITEM_SET(param, &desc->picture_parameter, cdef_uv_strengths[i]);
-
-    ITEM_SET(&param->loop_restoration_fields.bits, &desc->picture_parameter.loop_restoration_fields, yframe_restoration_type);
-    ITEM_SET(&param->loop_restoration_fields.bits, &desc->picture_parameter.loop_restoration_fields, cbframe_restoration_type);
-    ITEM_SET(&param->loop_restoration_fields.bits, &desc->picture_parameter.loop_restoration_fields, crframe_restoration_type);
-    ITEM_SET(&param->loop_restoration_fields.bits, &desc->picture_parameter.loop_restoration_fields, lr_unit_shift);
-    ITEM_SET(&param->loop_restoration_fields.bits, &desc->picture_parameter.loop_restoration_fields, lr_uv_shift);
-
-    /* Global Motion Params */
-    for (i = 0; i < ARRAY_SIZE(param->wm); i++) {
-        param->wm[i].wmtype  = desc->picture_parameter.wm[i].wmtype;
-        param->wm[i].invalid = desc->picture_parameter.wm[i].invalid;
-        for (j = 0; j < ARRAY_SIZE(param->wm[i].wmmat); j++)
-            param->wm[i].wmmat[j] = desc->picture_parameter.wm[i].wmmat[j];
-    }
-}
-
-/*
- * Refer to vlVaHandleSliceParameterBufferAV1() in mesa
- */
-static void av1_fill_slice_param(struct virgl_video_codec *codec,
-                            struct virgl_video_buffer *target,
-                            const struct virgl_av1_picture_desc *desc,
-                            unsigned num_param,
-                            VASliceParameterBufferAV1 *param)
-{
-    (void)codec;
-    (void)target;
-
-    for (unsigned i = 0; i < num_param; i++) {
-        param[i].slice_data_size = desc->slice_parameter.slice_data_size[i];
-        param[i].slice_data_offset = desc->slice_parameter.slice_data_offset[i];
-        param[i].tile_row = desc->slice_parameter.slice_data_row[i];
-        param[i].tile_column = desc->slice_parameter.slice_data_col[i];
-        param[i].anchor_frame_idx = desc->slice_parameter.slice_data_anchor_frame_idx[i];
-    }
-}
-
-static int av1_decode_bitstream(struct virgl_video_codec *codec,
-                                struct virgl_video_buffer *target,
-                                const struct virgl_av1_picture_desc *desc,
-                                unsigned num_buffers,
-                                const void * const *buffers,
-                                const unsigned *sizes)
-{
-    unsigned i;
-    int err = 0;
-    VAStatus va_stat;
-    VABufferID *slice_data_buf, pic_param_buf, slice_param_buf;
-    VADecPictureParameterBufferAV1 pic_param;
-    VASliceParameterBufferAV1 *slice_param;
-    unsigned slice_count = desc->slice_parameter.slice_count;
-
-    /* Picture parameters */
-    memset(&pic_param, 0, sizeof(pic_param));
-    av1_fill_picture_param(codec, target, desc, &pic_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VAPictureParameterBufferType,
-                   sizeof(pic_param), 1, &pic_param, &pic_param_buf);
-
-    /* Slice parameters */
-    slice_param = calloc(slice_count, sizeof(VASliceParameterBufferAV1));
-    av1_fill_slice_param(codec, target, desc, slice_count, slice_param);
-    vaCreateBuffer(va_dpy, codec->va_ctx, VASliceParameterBufferType,
-                   sizeof(VASliceParameterBufferAV1), slice_count,
-                   slice_param, &slice_param_buf);
-
-    /* Slice data */
-    slice_data_buf = calloc(num_buffers, sizeof(VABufferID));
-    for (i = 0; i < num_buffers; i++) {
-        vaCreateBuffer(va_dpy, codec->va_ctx, VASliceDataBufferType,
-                      sizes[i], 1, (void *)(buffers[i]), &slice_data_buf[i]);
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &pic_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render picture param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_param_buf, 1);
-    if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("render slice param failed, err = 0x%x\n", va_stat);
-        err = -1;
-        goto err;
-    }
-
-    for (i = 0; i < num_buffers; i++) {
-        va_stat = vaRenderPicture(va_dpy, codec->va_ctx, &slice_data_buf[i], 1);
-
-        if (VA_STATUS_SUCCESS != va_stat) {
-            virgl_error("render slice data failed, err = 0x%x\n", va_stat);
-            err = -1;
-        }
-    }
-
-err:
-    vaDestroyBuffer(va_dpy, pic_param_buf);
-    vaDestroyBuffer(va_dpy, slice_param_buf);
-    for (i = 0; i < num_buffers; i++)
-        vaDestroyBuffer(va_dpy, slice_data_buf[i]);
-    free(slice_param);
-    free(slice_data_buf);
-
-    return err;
-}
-
-
 int virgl_video_decode_bitstream(struct virgl_video_codec *codec,
                                  struct virgl_video_buffer *target,
                                  const union virgl_picture_desc *desc,
@@ -3085,14 +2244,14 @@ int virgl_video_decode_bitstream(struct virgl_video_codec *codec,
                                  const void * const *buffers,
                                  const unsigned *sizes)
 {
+
     if (!va_dpy || !codec || !target || !desc
-        || !num_buffers || !buffers || !sizes){
+        || !num_buffers || !buffers || !sizes)
         return -1;
-    }  
 
     if (desc->base.profile != codec->profile) {
-        virgl_error("profiles not matched, picture: %d, codec: %d\n",
-                    desc->base.profile, codec->profile);
+        virgl_log("profiles not matched, picture: %d, codec: %d\n",
+                desc->base.profile, codec->profile);
         return -1;
     }
 
@@ -3114,25 +2273,6 @@ int virgl_video_decode_bitstream(struct virgl_video_codec *codec,
     case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
         return h265_decode_bitstream(codec, target, &desc->h265,
                                      num_buffers, buffers, sizes);
-    case PIPE_VIDEO_PROFILE_MPEG2_SIMPLE:
-    case PIPE_VIDEO_PROFILE_MPEG2_MAIN:
-        return mpeg12_decode_bitstream(codec, target, &desc->mpeg12,
-                                       num_buffers, buffers, sizes);
-    case PIPE_VIDEO_PROFILE_JPEG_BASELINE:
-        return mjpeg_decode_bitstream(codec, target, &desc->mjpeg,
-                                       num_buffers, buffers, sizes);
-    case PIPE_VIDEO_PROFILE_VC1_SIMPLE:
-    case PIPE_VIDEO_PROFILE_VC1_MAIN:
-    case PIPE_VIDEO_PROFILE_VC1_ADVANCED:
-        return vc1_decode_bitstream(codec, target, &desc->vc1,
-                                       num_buffers, buffers, sizes);
-    case PIPE_VIDEO_PROFILE_VP9_PROFILE0:
-    case PIPE_VIDEO_PROFILE_VP9_PROFILE2:
-        return vp9_decode_bitstream(codec, target, &desc->vp9,
-                                      num_buffers, buffers, sizes);
-    case PIPE_VIDEO_PROFILE_AV1_MAIN:
-        return av1_decode_bitstream(codec, target, &desc->av1,
-                                    num_buffers, buffers, sizes);
     default:
         break;
     }
@@ -3148,8 +2288,8 @@ int virgl_video_encode_bitstream(struct virgl_video_codec *codec,
         return -1;
 
     if (desc->base.profile != codec->profile) {
-        virgl_error("profiles not matched, picture: %d, codec: %d\n",
-                    desc->base.profile, codec->profile);
+        virgl_log("profiles not matched, picture: %d, codec: %d\n",
+                desc->base.profile, codec->profile);
         return -1;
     }
 
@@ -3186,13 +2326,13 @@ int virgl_video_end_frame(struct virgl_video_codec *codec,
 
     va_stat = vaEndPicture(va_dpy, codec->va_ctx);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("end picture failed, err = 0x%x\n", va_stat);
+        virgl_log("end picture failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
     va_stat = vaSyncSurface(va_dpy, target->va_sfc);
     if (VA_STATUS_SUCCESS != va_stat) {
-        virgl_error("sync surface failed, err = 0x%x\n", va_stat);
+        virgl_log("sync surface failed, err = 0x%x\n", va_stat);
         return -1;
     }
 
