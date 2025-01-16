@@ -238,7 +238,7 @@ traces:
   - path: paraview/pv-waveletvolume-v2.trace
     expectations:
       - device: gl-virgl
-        checksum: f4af4067b37c00861fa5911e4c0a6629
+        checksum: 7e0fc4f2f8c635e571793ed8fa705f85
   - path: supertuxkart/supertuxkart-mansion-egl-gles-v2.trace
     expectations:
       - device: gl-virgl
