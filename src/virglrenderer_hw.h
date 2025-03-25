@@ -38,7 +38,7 @@ enum virgl_renderer_capset {
    VIRGL_RENDERER_CAPSET_VENUS                   = 4,
    /* 5 is reserved for cross-domain */
    VIRGL_RENDERER_CAPSET_DRM                     = 6,
-   VIRGL_RENDERER_CAPSET_VQNN                     = 8,
+   VIRGL_RENDERER_CAPSET_VQNN                     = 127,
 };
 #endif
 
