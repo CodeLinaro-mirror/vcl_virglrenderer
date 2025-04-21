@@ -187,7 +187,10 @@ vcomp_dispatch_clQnnGraphExecute(
                 }
             }
             if(outputs[i].v1.rank > 0) {
-                outputs[i].v1.dimensions = (uint32_t*)(mem + cur_size);                
+                // Ensure the current size is aligned to the alignment of uint32_t
+                size_t alignment = alignof(uint32_t);
+                size_t offset = (cur_size % alignment == 0) ? 0 : (alignment - (cur_size % alignment));
+		        outputs[i].v1.dimensions = (uint32_t*)((char*)mem + cur_size + offset);
                 cur_size += (outputs[i].v1.rank * sizeof(uint32_t));
             }
 
@@ -196,8 +199,11 @@ vcomp_dispatch_clQnnGraphExecute(
                 fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
             } else if(outputs[i].v1.memType == QNN_TENSORMEMTYPE_RAW) {
                 if(outputs[i].v1.clientBuf.dataSize > 0) {
-                    outputs[i].v1.clientBuf.data = (void*)(mem + cur_size);
-                    cur_size+=outputs[i].v1.clientBuf.dataSize;
+                    // Ensure the current size is aligned to the alignment of uint32_t
+                    uintptr_t addr = (uintptr_t)mem;
+                    uintptr_t aligned_addr = (addr + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
+                    outputs[i].v1.clientBuf.data = (void*)((char*)aligned_addr + cur_size);
+                    cur_size += outputs[i].v1.clientBuf.dataSize;
                 }
             }
         } else if (outputs[i].version == QNN_TENSOR_VERSION_2) {
