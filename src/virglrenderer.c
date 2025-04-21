@@ -46,7 +46,6 @@
 #include "vqnn/vcomp_renderer.h"
 
 #include "virqnnrenderer.h"
-#include "virglrenderer.h"
 #include "virglrenderer_hw.h"
 
 #include "virgl_context.h"

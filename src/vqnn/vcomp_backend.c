@@ -74,7 +74,7 @@ vcomp_dispatch_clQnnBackendFree(
 
     if (vqnn_functionPointers.qnnInterface.backendFree)
     {
-        args->ret = vqnn_functionPointers.qnnInterface.backendFree(backend);
+        args->ret = vqnn_functionPointers.qnnInterface.backendFree(backend->base.handle.backend);
 
     }
     else

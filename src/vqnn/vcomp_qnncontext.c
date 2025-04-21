@@ -120,7 +120,7 @@ vcomp_dispatch_clQnnContextFree(
     if (vqnn_functionPointers.qnnInterface.contextFree)
     {
         // args->callback replace the NULL if required
-        args->ret = vqnn_functionPointers.qnnInterface.contextFree(qnn_context_handle, args->profile);
+        args->ret = vqnn_functionPointers.qnnInterface.contextFree(qnn_context_handle->base.handle.qnn_context, args->profile);
     }
     else
     {

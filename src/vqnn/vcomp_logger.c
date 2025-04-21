@@ -68,7 +68,7 @@ vcomp_dispatch_clQnnLogSetLogLevel(
     if (vqnn_functionPointers.qnnInterface.logSetLogLevel)
     {
         // args->callback replace the NULL if required
-        args->ret = vqnn_functionPointers.qnnInterface.logSetLogLevel(logger, args->maxLogLevel);
+        args->ret = vqnn_functionPointers.qnnInterface.logSetLogLevel(logger->base.handle.logger, args->maxLogLevel);
     }
     else
     {
@@ -94,7 +94,7 @@ vcomp_dispatch_clQnnLogFree(
     if (vqnn_functionPointers.qnnInterface.logFree)
     {
         // args->callback replace the NULL if required
-        args->ret = vqnn_functionPointers.qnnInterface.logFree(logger);
+        args->ret = vqnn_functionPointers.qnnInterface.logFree(logger->base.handle.logger);
     }
     else
     {
