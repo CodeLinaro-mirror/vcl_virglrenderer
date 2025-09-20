@@ -66,6 +66,96 @@ vcomp_dispatch_clQnnGraphRetrieveMESA(
     vcomp_context_add_object(vctx, &graph_handle->base);
 }
 
+
+static void deep_copy_tensor(Qnn_Tensor_t* tensor, int numTensors, char* mem, size_t* cur_size) {
+
+    for(int i = 0; i < numTensors; i++){
+        if(tensor[i].version == QNN_TENSOR_VERSION_1){
+            if(tensor[i].v1.name != NULL) {
+                tensor[i].v1.name = mem+ *cur_size;
+                size_t len = strlen(tensor[i].v1.name);
+                *cur_size += len;
+            }
+
+            if(tensor[i].v1.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
+                if(tensor[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
+                    size_t sc_size = tensor[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
+                    tensor[i].v1.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + *cur_size);
+                    *cur_size += sc_size;
+                }
+            }
+
+
+            if(tensor[i].v1.rank > 0) {
+                // Ensure the current size is aligned to the alignment of uint32_t
+                size_t alignment = sizeof(uint32_t);
+                size_t offset = (*cur_size % alignment == 0) ? 0 : (alignment - (*cur_size % alignment));
+                tensor[i].v1.dimensions = (uint32_t*)((char*)mem + *cur_size + offset);
+                *cur_size += (tensor[i].v1.rank * sizeof(uint32_t));
+            }
+
+
+            if(tensor[i].v1.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
+                //HANDLE MEM HANDLE
+                fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
+            } else if(tensor[i].v1.memType == QNN_TENSORMEMTYPE_RAW) {
+                if(tensor[i].v1.clientBuf.dataSize > 0) {
+                    size_t alignment = sizeof(uint32_t);
+                    *cur_size = (*cur_size + alignment - 1) & ~(alignment - 1);
+                    tensor[i].v1.clientBuf.data = (uint8_t*)(mem + *cur_size);
+                    *cur_size += tensor[i].v1.clientBuf.dataSize;
+                }
+            } else {
+                fprintf(stderr, "Invalid mem_type of QnnTensor_t \n");
+            }
+        } else if (tensor[i].version == QNN_TENSOR_VERSION_2) {
+            if(tensor[i].v2.name != NULL) {
+                tensor[i].v2.name = mem+ *cur_size;
+                size_t len = strlen(tensor[i].v2.name);
+                *cur_size += len;
+            }
+            if(tensor[i].v2.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
+                if(tensor[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
+                    size_t sc_size = tensor[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
+                    tensor[i].v2.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + *cur_size);
+                    *cur_size += sc_size;
+                }
+            }
+
+
+            if(tensor[i].v2.rank > 0) {
+                // Ensure the current size is aligned to the alignment of uint32_t
+                size_t alignment = sizeof(uint32_t);
+                size_t offset = (*cur_size % alignment == 0) ? 0 : (alignment - (*cur_size % alignment));
+                tensor[i].v2.dimensions = (uint32_t*)((char*)mem + *cur_size + offset);
+                *cur_size += (tensor[i].v2.rank * sizeof(uint32_t));
+            }
+
+
+            if(tensor[i].v2.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
+                //HANDLE MEM HANDLE
+                fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
+            } else if(tensor[i].v2.memType == QNN_TENSORMEMTYPE_RAW) {
+                if(tensor[i].v2.clientBuf.dataSize > 0) {
+                    size_t alignment = sizeof(uint32_t);
+                    *cur_size = (*cur_size + alignment - 1) & ~(alignment - 1);
+                    tensor[i].v2.clientBuf.data = (uint8_t*)(mem + *cur_size);
+                    *cur_size += tensor[i].v2.clientBuf.dataSize;
+                }
+            } else if(tensor[i].v2.memType == QNN_TENSORMEMTYPE_RETRIEVE_RAW) {
+                fprintf(stderr, "QNN_TENSORMEMTYPE_RETRIEVE_RAW for tensors not implemented yet!\n");
+            } else {
+                fprintf(stderr, "Invalid mem_type of QnnTensor_t \n");
+            }
+            tensor[i].v2.isDynamicDimensions = NULL;
+
+        } else {
+            fprintf(stderr, "Incorrect version of QNN tensor \n");
+        }
+    }
+}
+
+
 static void
 vcomp_dispatch_clQnnGraphExecute(
     struct vcl_dispatch_context *dispatch,
@@ -91,154 +181,14 @@ vcomp_dispatch_clQnnGraphExecute(
 
     size_t cur_size = sizeof(Qnn_Tensor_t) * args->numInputs;
     Qnn_Tensor_t* inputs = (Qnn_Tensor_t*)mem;
-    for(int i = 0; i < args->numInputs; i++){
-        if(inputs[i].version == QNN_TENSOR_VERSION_1){
-            if(inputs[i].v1.name != NULL) {
-                inputs[i].v1.name = mem;
-                int cnt = 0;
-                while (inputs[i].v1.name + cnt != '\0') {
-                    cnt += 1;
-                }
-                size_t len = strlen(inputs[i].v1.name);
-                cur_size += len;
-            }
 
-            if(inputs[i].v1.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
-                if(inputs[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
-                    size_t sc_size = inputs[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
-                    inputs[i].v1.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + cur_size);
-                    cur_size += sc_size;
-                }
-            }
-
-            if(inputs[i].v1.rank > 0) {
-                inputs[i].v1.dimensions = (uint32_t*)(mem + cur_size);
-                cur_size += (inputs[i].v1.rank * sizeof(uint32_t));
-            }
-
-            if(inputs[i].v1.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
-                //HANDLE MEM HANDLE
-                fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
-            } else if(inputs[i].v1.memType == QNN_TENSORMEMTYPE_RAW) {
-                if(inputs[i].v1.clientBuf.dataSize > 0) {
-                    inputs[i].v1.clientBuf.data = (char*)(mem + cur_size);
-                    uint8_t* temp_data = (uint8_t*)inputs[i].v1.clientBuf.data;
-                    cur_size+=inputs[i].v1.clientBuf.dataSize;
-                }
-            }
-        } else if (inputs[i].version == QNN_TENSOR_VERSION_2) { 
-            if(inputs[i].v2.name != NULL) {
-                inputs[i].v2.name = mem;
-                int cnt = 0;
-                while (inputs[i].v2.name + cnt != '\0') {
-                    cnt += 1;
-                }
-                size_t len = strlen(inputs[i].v2.name);
-                cur_size += len;
-            }
-
-            if(inputs[i].v2.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
-                if(inputs[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
-                    size_t sc_size = inputs[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
-                    inputs[i].v2.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + cur_size);
-                    cur_size += sc_size;
-                }
-            }
-
-            if(inputs[i].v2.rank > 0) {
-                inputs[i].v2.dimensions = (uint32_t*)(mem + cur_size);
-                cur_size += (inputs[i].v2.rank * sizeof(uint32_t));
-            }
-
-            if(inputs[i].v2.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
-                //HANDLE MEM HANDLE
-                fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
-            } else if(inputs[i].v2.memType == QNN_TENSORMEMTYPE_RAW) {
-                if(inputs[i].v2.clientBuf.dataSize > 0) {
-                    inputs[i].v2.clientBuf.data = (char*)(mem + cur_size);
-                    uint8_t* temp_data = (uint8_t*)inputs[i].v2.clientBuf.data;
-                    cur_size+=inputs[i].v2.clientBuf.dataSize;
-                }
-            }
-        } else {
-            fprintf(stderr, "Incorrect version of QNN tensor \n");
-        }
-    }
+    deep_copy_tensor(inputs, args->numInputs, mem, &cur_size);
 
     size_t align_size = (ceil((double)cur_size/(double)sizeof(Qnn_Tensor_t)) * sizeof(Qnn_Tensor_t)) - cur_size;
-
     Qnn_Tensor_t *outputs = (Qnn_Tensor_t*)(mem + cur_size + align_size);
     cur_size += args->numOutputs * sizeof(Qnn_Tensor_t) + align_size;
 
-    // add error checks
-    for(int i = 0; i < args->numOutputs; i++){
-        if(outputs[i].version == QNN_TENSOR_VERSION_1){
-            if(outputs[i].v1.name != NULL) {
-                outputs[i].v1.name = mem;
-                size_t len = strlen(outputs[i].v1.name);
-                cur_size += len;
-            }
-
-            if(outputs[i].v1.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
-                if(outputs[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
-                    size_t sc_size = outputs[i].v1.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
-                    outputs[i].v1.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + cur_size);
-                    cur_size += sc_size;
-                }
-            }
-            if(outputs[i].v1.rank > 0) {
-                // Ensure the current size is aligned to the alignment of uint32_t
-                size_t alignment = alignof(uint32_t);
-                size_t offset = (cur_size % alignment == 0) ? 0 : (alignment - (cur_size % alignment));
-		        outputs[i].v1.dimensions = (uint32_t*)((char*)mem + cur_size + offset);
-                cur_size += (outputs[i].v1.rank * sizeof(uint32_t));
-            }
-
-            if(outputs[i].v1.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
-                //HANDLE MEM HANDLE
-                fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
-            } else if(outputs[i].v1.memType == QNN_TENSORMEMTYPE_RAW) {
-                if(outputs[i].v1.clientBuf.dataSize > 0) {
-                    // Ensure the current size is aligned to the alignment of uint32_t
-                    uintptr_t addr = (uintptr_t)mem;
-                    uintptr_t aligned_addr = (addr + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1);
-                    outputs[i].v1.clientBuf.data = (void*)((char*)aligned_addr + cur_size);
-                    cur_size += outputs[i].v1.clientBuf.dataSize;
-                }
-            }
-        } else if (outputs[i].version == QNN_TENSOR_VERSION_2) {
-            if(outputs[i].version == QNN_TENSOR_VERSION_1){
-                if(outputs[i].v2.name != NULL) {
-                    outputs[i].v2.name = mem;
-                    size_t len = strlen(outputs[i].v2.name);
-                    cur_size += len;
-                }
-
-                if(outputs[i].v2.quantizeParams.quantizationEncoding == QNN_QUANTIZATION_ENCODING_AXIS_SCALE_OFFSET) {
-                    if(outputs[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets > 0){
-                        size_t sc_size = outputs[i].v2.quantizeParams.axisScaleOffsetEncoding.numScaleOffsets * sizeof(Qnn_ScaleOffset_t);
-                        outputs[i].v2.quantizeParams.axisScaleOffsetEncoding.scaleOffset = (Qnn_ScaleOffset_t*)(mem + cur_size);
-                        cur_size += sc_size;
-                    }
-                }
-                if(outputs[i].v2.rank > 0) {
-                    outputs[i].v2.dimensions = (uint32_t*)(mem + cur_size);                
-                    cur_size += (outputs[i].v2.rank * sizeof(uint32_t));
-                }
-
-                if(outputs[i].v2.memType == QNN_TENSORMEMTYPE_MEMHANDLE) {
-                    fprintf(stderr, "Mem Handle for tensors not implemented yet!\n");
-                } else if(outputs[i].v2.memType == QNN_TENSORMEMTYPE_RAW) {
-                    if(outputs[i].v2.clientBuf.dataSize > 0) {
-                        outputs[i].v2.clientBuf.data = (void*)(mem + cur_size);
-                        cur_size+=outputs[i].v2.clientBuf.dataSize;
-                    }
-                }
-            }
-        } else {
-            fprintf(stderr, "Incorrect version of QNN tensor \n");
-        }
-    }
+    deep_copy_tensor(outputs, args->numOutputs, mem, &cur_size);
 
     struct vcomp_context *vctx = dispatch->data;
     struct vcomp_graph *graph = vcomp_graph_from_handle(args->graphHandle);
@@ -250,6 +200,7 @@ vcomp_dispatch_clQnnGraphExecute(
     if (vqnn_functionPointers.qnnInterface.graphExecute)
     {
         args->ret = vqnn_functionPointers.qnnInterface.graphExecute(graph->base.handle.graph, inputs, args->numInputs, outputs, args->numOutputs, args->profileHandle, args->signalHandle);
+
     }
     else
     {
